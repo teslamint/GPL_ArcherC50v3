@@ -1,0 +1,2793 @@
+#**************************************************************************** 
+# 
+#  Copyright(c) 2010-2011 Shenzhen TP-LINK Technologies Co.Ltd. 
+#  All Rights Reserved 
+#  YangXv <yangxu@tp-link.com.cn> 
+# 
+#***************************************************************************
+
+# Top-level Makefile for all linux platforms 
+
+ifndef MODEL
+$(error "You have to define MODEL, such as VG3631V1")
+endif
+
+include config/$(MODEL).config
+
+ifeq ($(strip $(INCLUDE_CPU_TC3182)),y)
+CPU_TYPE=tc3182
+endif
+
+ifeq ($(strip $(INCLUDE_CPU_TC3162U)),y)
+CPU_TYPE=tc3162u
+endif
+
+#zl added 2011-10-18
+ifeq ($(strip $(INCLUDE_CPU_RTL8672)),y)
+CPU_TYPE=rtl8672
+endif
+
+ifeq ($(strip $(INCLUDE_CPU_VR268)),y)
+CPU_TYPE=vr268
+include config/config.wifi
+endif
+
+#wanghao added 2013-10-08 for Archer C2
+ifeq ($(strip $(INCLUDE_CPU_MT7620A)),y)
+CPU_TYPE=mt7620a
+endif
+#end--added
+
+#yanwei added 2016-09-07 for wr840nv4
+ifeq ($(strip $(INCLUDE_CPU_MT7628)),y)
+CPU_TYPE=mt7628
+endif
+#end--added
+
+ifeq ($(strip $(INCLUDE_CPU_RT63368)),y)
+CPU_TYPE=rt63368
+endif
+
+ifeq ($(strip $(INCLUDE_CPU_RT63365)),y)
+CPU_TYPE=rt63365
+endif
+
+ifeq ($(strip $(INCLUDE_CPU_88F6550)),y)
+CPU_TYPE=88f6550
+include config/config.wifi
+endif
+
+#define basic variable
+TOP_PATH = $(shell pwd)/..
+BUILD_PATH = $(TOP_PATH)/build
+TOOLS_PATH = $(TOP_PATH)/host_tools
+FAKEROOT_PATH = $(TOOLS_PATH)/fakeroot
+
+#Temporarily
+ifeq ($(strip $(INCLUDE_LANGUAGE_EN)),y)
+WEBFILE_PATH = $(TOP_PATH)/sysfiles/web/en
+CONFFILE_PATH = $(TOP_PATH)/sysfiles/config/en
+endif
+
+ifeq ($(strip $(INCLUDE_LANGUAGE_CN)),y)
+WEBFILE_PATH = $(TOP_PATH)/sysfiles/web/cn
+CONFFILE_PATH = $(TOP_PATH)/sysfiles/config/cn
+endif
+
+TARGETS_PATH = $(TOP_PATH)/targets
+PUBLIC_APPS_PATH = $(TOP_PATH)/apps/public
+PRIVATE_APPS_PATH = $(TOP_PATH)/apps/private
+OS_LIB_PATH = $(PUBLIC_APPS_PATH)/os_libs
+TP_MODULES_PATH = $(TOP_PATH)/modules/private
+GCC_PATH = /opt
+
+#GPL dir
+export GPL_DIR=$(TOP_PATH)/$(GPL_PACKAGE_NAME)
+####################################################
+#
+#Get supplier         
+#
+####################################################	
+ifeq ($(strip $(CPU_TYPE)),88f6550)
+#ChenZhu add 20130402 for bigendian is not supported
+export BIGENDIAN = 0
+SUPPLIER = environment_marvel88f6560
+SUPPLIER_MARVELL = environment_marvel88f6560
+export ARCH = arm
+export KERNELARCH = arm
+TOOLROOTPATH :=/opt/marvell/armv5-marvell-linux-uclibcgnueabi-soft_i686
+export CROSS_COMPILE = $(TOOLROOTPATH)/bin/arm-marvell-linux-uclibcgnueabi-
+export PATH := $(TOOLROOTPATH)/bin:$(PATH)
+TOOLPREFIX = arm-marvell-linux-uclibcgnueabi-
+HOST = arm-marvell-linux-uclibcgnueabi
+KERNELVERSION = 2.6.32.11
+OBJ_DIR = marvell_2.6.25-RC10
+export KERNELPATH = $(TOP_PATH)/$(SUPPLIER)/SDK_2.6.25-RC10/Source/Kernel/linux_feroceon-KW2
+
+AVANTA_HGU_CFG_DIR = $(TOP_PATH)/$(SUPPLIER)/SDK_2.6.25-RC10/Source/ConfigFiles/Products/AVANTA_HGU
+AVANTA_HGU_INITD_DIR = $(AVANTA_HGU_CFG_DIR)/FileSystem/init.d
+
+KERNEL_CFG_DIR = $(AVANTA_HGU_CFG_DIR)/Kernel
+
+MARVELL_KERNEL_IMAGE_DIR = $(KERNELPATH)/arch/arm/boot
+MARVELL_KERNEL_IMAGE_NAME = uImage
+
+MARVELL_SQAUSH_FS_DIR = $(TOP_PATH)/$(SUPPLIER)/SDK_2.6.25-RC10/Source
+MARVELL_SQAUSH_FS_NAME = rootfs.squashfs
+MARVELL_JFFS2_FS_NAME = jffs2.image
+
+MARVELL_IMAGE_DIR = $(TOP_PATH)/$(SUPPLIER)/SDK_2.6.25-RC10/Output/Products/AVANTA_HGU/RecoveryImage
+MARVELL_IMAGE_NAME = rootfs.squashfs.rcvr.img
+
+export MAKEARCH = $(MAKE) ARCH=$(KERNELARCH) CROSS_COMPILE=$(TOOLPREFIX)
+
+export HAL = $(TOP_PATH)/$(SUPPLIER)/modules/private/wlan/hal
+export TARGETARCH = xscale-le-elf
+export MODULEPATH = $(TARGETS_PATH)/fs.$(MODEL)/lib/modules
+WIRELESSTOOLS = wireless_tools.29
+WIFI_TOOL_TG_PATH = $(TARGETS_PATH)/$(SUPPLIER)_$(CPU_TYPE)_wifi_tool
+WIFI_MODULE_TG_PATH = $(TARGETS_PATH)/$(SUPPLIER)_$(CPU_TYPE)_wifi_modules
+INSTALL_WIRELESS = $(WIFI_TOOL_TG_PATH)
+FS_WIRELESS_MODULE = $(MODULEPATH)
+FS_WIRELESS_TOOLS = $(TARGETS_PATH)/fs.$(MODEL)/usr
+WIRELESSTOOLSLIB = iwlib.so
+
+export WIFI_MODULE_TG_PATH
+
+#export ATH_CARR_DIR = marvel
+export PLATFORM = $(TOP_PATH)/environment_marvel88f6560/modules/private/wlan
+#export PLATFORM_INC = $(PLATFORM)/carrier/$(ATH_CARR_DIR)/include
+export ATHEROSPATH=$(PLATFORM)
+
+export MARVELL_SW_DIR = $(TOP_PATH)/$(SUPPLIER)/SDK_2.6.25-RC10/Source/Application/SW_TREE_PUB
+#export MARVELL_SW_LIBS_INC = -I$(MARVELL_SW_DIR)/mng/i2c/appl/i2c_app/inc
+export MARVELL_SW_LIBS_INC = -I$(MARVELL_SW_DIR)/mng/omci/core/h	#Added by YeZuopou @ 01Apr13
+export MARVELL_SW_LIBS_LIB = -L$(MARVELL_SW_DIR)/mipc/obj -lmipc \
+							-L$(MARVELL_SW_DIR)/mipc/api_defs/omci -lomci_mipc_client \
+							-lm 
+endif
+
+ifeq ($(strip $(CPU_TYPE)),tc3182)
+TOOLROOTPATH :=/opt/trendchip/mips-linux-uclibc/usr
+export PATH :=$(TOOLROOTPATH)/bin:$(PATH)
+SUPPLIER = ralink
+TOOLPREFIX = mips-linux-uclibc-
+HOST = mips-linux-uclibc
+KERNELVERSION = 2.6.22.15
+OBJ_DIR = ralink_4.3.4
+SLIB_PATH = $(TOP_PATH)/$(SUPPLIER)/Project/lib/mips-linux-uclibc/
+KERNELPATH = $(TOP_PATH)/$(SUPPLIER)/linux
+ROOTFSTOOLS = $(SUPPLIER_TOOLS)/mksquashfs-lzma
+
+ifeq ($(strip $(SUPPLIER)),ralink)
+
+unexport TC_CFLAGS
+ifeq ($(INCLUDE_VOIP), y)
+include voip.mak
+TC_CFLAGS += $(VOIP_LOCALE)
+ifeq ($(INCLUDE_DSP_SOCKET_OPEN), y)
+TC_CFLAGS += -DINCLUDE_DSP_SOCKET_OPEN
+endif 
+endif
+
+ifeq ($(strip $(TCSUPPORT_SDRAM_32M)),y)
+TC_CFLAGS += -DTCSUPPORT_SDRAM_32M
+endif
+
+ifeq ($(INCLUDE_WATCHDOG), y) 
+TC_CFLAGS += -DTCSUPPORT_WATCHDOG
+endif
+
+ifeq ($(strip $(TCSUPPORT_BRIDGE_FASTPATH)),y)
+TC_CFLAGS += -DTCSUPPORT_BRIDGE_FASTPATH
+endif
+export TC_CFLAGS
+endif
+
+endif
+
+ifeq ($(strip $(CPU_TYPE)),tc3162u)
+export PATH :=/opt/trendchip/mips-linux-3.4.6/bin:$(PATH)
+SUPPLIER = ralink
+TOOLPREFIX = mips-linux-
+HOST = mips-linux
+KERNELVERSION = 2.6.22.15
+OBJ_DIR = ralink_3.4.6
+SLIB_PATH = $(TOP_PATH)/$(SUPPLIER)/Project/lib/mips-linux/
+KERNELPATH = $(TOP_PATH)/$(SUPPLIER)/linux
+ROOTFSTOOLS = $(SUPPLIER_TOOLS)/mksquashfs-lzma
+endif
+
+#zl added 2011-10-18
+ifeq ($(strip $(CPU_TYPE)),rtl8672)
+export PATH :=/opt/rtl/rsdk-1.3.6-5181-EB-2.6.30-0.9.30/bin:$(PATH)
+SUPPLIER = realtek
+TOOLPREFIX = rsdk-linux-
+HOST = rsdk-linux
+KERNELVERSION = 2.6.30.9
+OBJ_DIR = realtek_1.3.6
+SLIB_PATH = $(TOP_PATH)/$(SUPPLIER)/vendors/rsdk-linux/
+KERNELPATH = $(TOP_PATH)/$(SUPPLIER)/linux-2.6.x
+ROOTFSTOOLS = $(KERNELPATH)/mksquashfs
+#For lzma when make rootfs
+export PATH := $(KERNELPATH)/rtkload/:$(PATH)
+endif
+#end--added
+
+ifeq ($(strip $(CPU_TYPE)),vr268)
+SUPPLIER = lantiq
+TOOLPREFIX = mips-linux-uclibc-
+HOST = mips-linux
+KERNELVERSION = 2.6.32.32
+OBJ_DIR = lantiq_4.3.3
+SLIB_PATH = $(TOP_PATH)/$(SUPPLIER)/build_dir/target-mips_r2_uClibc-0.9.30.1_2_6_32_LANTIQ/root-ltqcpe/orilib
+KERNELPATH = $(TOP_PATH)/$(SUPPLIER)/build_dir/linux-ltqcpe_2_6_32_LANTIQ/linux-2.6.32.32
+ROOTFSTOOLS = $(TOP_PATH)/$(SUPPLIER)/staging_dir/host/bin/mksquashfs4
+TOOLCHAIN_DIR = $(TOP_PATH)/$(SUPPLIER)/staging_dir/toolchain-mips_r2_gcc-4.3.3+cs_uClibc-0.9.30.1_2_6_32
+export PATH :=$(TOP_PATH)/$(SUPPLIER)/staging_dir/toolchain-mips_r2_gcc-4.3.3+cs_uClibc-0.9.30.1_2_6_32/usr/bin:$(PATH)
+export PATH :=$(TOP_PATH)/$(SUPPLIER)/staging_dir/host/bin:$(PATH)
+export HAL = $(TOP_PATH)/$(SUPPLIER)/modules/private/wlan/hal
+export KERNELARCH = mips
+export MAKEARCH = $(MAKE) ARCH=$(KERNELARCH) CROSS_COMPILE=$(TOOLPREFIX)
+export ATH_CARR_DIR = lantiq
+export PLATFORM = $(TOP_PATH)/lantiq/modules/private/wlan
+export PLATFORM_INC = $(PLATFORM)/carrier/$(ATH_CARR_DIR)/include
+export WAVE300_DIR = $(TOP_PATH)/lantiq/modules/wave300
+export INSTALL_WIRELESS = $(TOP_PATH)/$(SUPPLIER)/wireless
+export MODULEPATH = $(INSTALL_WIRELESS)/lib/modules/
+export ATHEROSPATH=$(PLATFORM)
+endif
+
+#wanghao added 2013-10-8 for Archer C2
+ifeq ($(strip $(CPU_TYPE)),mt7620a)
+TOOLROOTPATH :=$(GCC_PATH)/buildroot-gcc463/usr
+export PATH :=$(TOOLROOTPATH)/bin:$(PATH)
+SUPPLIER = mtk_ApSoC_4120
+TOOLPREFIX = mipsel-linux-
+HOST = mipsel-linux
+KERNELVERSION = 2.6.36
+OBJ_DIR = mtk_4.6.3
+SLIB_PATH = $(GCC_PATH)/buildroot-gcc463/usr/mipsel-buildroot-linux-uclibc/sysroot/lib
+KERNELPATH = $(TOP_PATH)/$(SUPPLIER)/linux-2.6.36.x
+ROOTFSTOOLS = $(SUPPLIER_TOOLS)/mksquashfs4.2
+
+export CROSS_COMPILE=$(TOOLPREFIX)
+
+unexport TC_CFLAGS
+TC_CFLAGS += -DTCSUPPORT_IGMPSNOOPING_ENHANCE
+export TC_CFLAGS
+
+export KERNELVERSION
+export INSTALL_WIRELESS = $(TOP_PATH)/$(SUPPLIER)/wireless
+export MT7610E_DIR = $(TOP_PATH)/$(SUPPLIER)/linux-2.6.36.x/drivers/net/wireless/MT7610_ap
+export MT7612E_AP_DIR = $(TOP_PATH)/$(SUPPLIER)/linux-2.6.36.x/drivers/net/wireless/MT7612_ap
+export MT7620_DIR = $(TOP_PATH)/$(SUPPLIER)/linux-2.6.36.x/drivers/net/wireless/rt2860v2_ap
+export WIRELESSTOOLS =$(TOP_PATH)/$(SUPPLIER)/modules/public/wireless_tools.29
+export WIRELESSTOOLSLIB = libiw.so.29
+endif
+#end--added
+
+#yanwei added 2016-09-07 for WR840NV2
+ifeq ($(strip $(CPU_TYPE)),mt7628)
+TOOLROOTPATH :=$(GCC_PATH)/buildroot-gcc463/usr
+export PATH :=$(TOOLROOTPATH)/bin:$(PATH)
+SUPPLIER = mtk_ApSoC_4320
+TOOLPREFIX = mipsel-linux-
+HOST = mipsel-linux
+KERNELVERSION = 2.6.36
+OBJ_DIR = mtk_4.6.3
+SLIB_PATH = $(GCC_PATH)/buildroot-gcc463/usr/mipsel-buildroot-linux-uclibc/sysroot/lib
+KERNELPATH = $(TOP_PATH)/$(SUPPLIER)/linux-2.6.36.x
+ROOTFSTOOLS = $(SUPPLIER_TOOLS)/mksquashfs4.2
+
+export CROSS_COMPILE=$(TOOLPREFIX)
+
+unexport TC_CFLAGS
+TC_CFLAGS += -DTCSUPPORT_IGMPSNOOPING_ENHANCE
+export TC_CFLAGS
+
+export KERNELVERSION
+export INSTALL_WIRELESS = $(TOP_PATH)/$(SUPPLIER)/wireless
+export MT7612E_AP_DIR = $(TOP_PATH)/$(SUPPLIER)/linux-2.6.36.x/drivers/net/wireless/MT7612_ap
+export MT7628_DIR = $(TOP_PATH)/$(SUPPLIER)/linux-2.6.36.x/drivers/net/wireless/mt_wifi
+export MT7612E_AP_DIR = $(TOP_PATH)/$(SUPPLIER)/linux-2.6.36.x/drivers/net/wireless/MT7612_ap
+export MT7610E_DIR = $(TOP_PATH)/$(SUPPLIER)/linux-2.6.36.x/drivers/net/wireless/MT7610_ap
+export WIRELESSTOOLS =$(TOP_PATH)/$(SUPPLIER)/modules/public/wireless_tools.29
+export WIRELESSTOOLSLIB = libiw.so.29
+endif
+#end--added
+
+ifeq ($(strip $(CPU_TYPE)),rt63368)
+TOOLROOTPATH :=/opt/trendchip/mips-linux-uclibc/usr
+export PATH :=$(TOOLROOTPATH)/bin:$(PATH)
+SUPPLIER = mtk
+TOOLPREFIX = mips-linux-uclibc-
+HOST = mips-linux-uclibc
+KERNELVERSION = 2.6.36
+OBJ_DIR = mtk_4.3.4
+SLIB_PATH = $(TOP_PATH)/$(SUPPLIER)/Project/lib/mips-linux-uclibc/
+KERNELPATH = $(TOP_PATH)/$(SUPPLIER)/linux-2.6.36
+ROOTFSTOOLS = $(SUPPLIER_TOOLS)/mksquashfs4
+
+unexport TC_CFLAGS
+
+ifeq ($(INCLUDE_VOIP), y)
+include voip.mak
+TC_CFLAGS += -DTCSUPPORT_VOIP $(VOIP_LOCALE)
+ifeq ($(INCLUDE_DSP_SOCKET_OPEN), y)
+TC_CFLAGS += -DINCLUDE_DSP_SOCKET_OPEN
+endif 
+endif
+
+ifeq ($(INCLUDE_WATCHDOG), y) 
+TC_CFLAGS += -DTCSUPPORT_WATCHDOG
+endif
+
+export TC_CFLAGS
+export KERNELVERSION
+
+endif
+
+ifeq ($(strip $(CPU_TYPE)),rt63365)
+TOOLROOTPATH :=/opt/trendchip/mips-linux-uclibc/usr
+export PATH :=$(TOOLROOTPATH)/bin:$(PATH)
+SUPPLIER = mtk
+TOOLPREFIX = mips-linux-uclibc-
+HOST = mips-linux-uclibc
+KERNELVERSION = 2.6.36
+OBJ_DIR = mtk_4.3.4
+SLIB_PATH = $(TOP_PATH)/$(SUPPLIER)/Project/lib/mips-linux-uclibc/
+KERNELPATH = $(TOP_PATH)/$(SUPPLIER)/linux-2.6.36
+ROOTFSTOOLS = $(SUPPLIER_TOOLS)/mksquashfs4
+
+
+unexport TC_CFLAGS
+TC_CFLAGS += -DTCSUPPORT_IGMPSNOOPING_ENHANCE
+export TC_CFLAGS
+
+export KERNELVERSION
+
+endif
+
+####################################################
+#
+#Supplier PATH variable        
+#
+####################################################	
+
+INSTALL_MOD_PATH = $(KERNELPATH)/../
+export MODULES_PATH = $(TOP_PATH)/$(SUPPLIER)/modules/private
+SUPPLIER_TOOLS = $(TOP_PATH)/$(SUPPLIER)/tools
+
+ifeq ($(strip $(SUPPLIER)),realtek)
+ifeq ($(INCLUDE_LAN_WLAN), y)
+WIRELESS_TOOLS = iwpriv
+endif
+endif
+
+#TG means target
+BOOT_TG_PATH = $(TARGETS_PATH)/$(SUPPLIER)_boot
+ifneq ($(findstring $(CPU_TYPE),mt7620a mt7628), )
+KERNEL_TG_PATH = $(TARGETS_PATH)/$(SUPPLIER)_$(CPU_TYPE)_kernel_$(MODEL)
+MODULE_TG_PATH = $(TARGETS_PATH)/$(SUPPLIER)_$(CPU_TYPE)_modules_$(MODEL)
+else
+KERNEL_TG_PATH = $(TARGETS_PATH)/$(SUPPLIER)_$(CPU_TYPE)_kernel
+MODULE_TG_PATH = $(TARGETS_PATH)/$(SUPPLIER)_$(CPU_TYPE)_modules
+endif
+MODEL_FS_PATH = $(TARGETS_PATH)/fs.$(MODEL)
+
+PRIVATE_LIB_BIN_PATH = $(PRIVATE_APPS_PATH)/bins/$(OBJ_DIR)/libs/
+PRIVATE_APPS_BIN_PATH = $(PRIVATE_APPS_PATH)/bins/$(OBJ_DIR)/apps/
+
+####################################################
+#
+#Supplier compiler variable        
+#
+####################################################	
+
+ifeq ($(INCLUDE_VOIP), y)
+sinclude voip.mak
+endif
+
+CC = $(TOOLPREFIX)gcc
+LD = $(TOOLPREFIX)ld
+AR = $(TOOLPREFIX)ar
+STRIP = $(TOOLPREFIX)strip
+RANLIB = $(TOOLPREFIX)ranlib
+
+####################################################
+#
+#PJSIP Variable
+#
+####################################################
+PJSIP_CONFCACHE_EXIST = $(wildcard $(PUBLIC_APPS_PATH)/pjsip_1.10/config_cache_file) 
+
+####################################################
+#
+#Function conditional compilation        
+#
+####################################################	
+
+DFLAGS = 
+WEBFLAGS = 
+DF_FLAGS = 
+
+ifeq ($(strip $(INCLUDE_SOCKET_LOCK)), y)
+DFLAGS += -DINCLUDE_SOCKET_LOCK
+export INCLUDE_SOCKET_LOCK=y
+endif
+
+ifeq ($(INCLUDE_SERBIA), y) 
+DFLAGS += -DINCLUDE_SERBIA
+endif 
+
+ifeq ($(INCLUDE_WATCHDOG), y) 
+DFLAGS += -DINCLUDE_WATCHDOG
+endif 
+
+ifeq ($(INCLUDE_PPA_ACCELERATE), y)
+DFLAGS += -DINCLUDE_PPA_ACCELERATE
+endif
+
+ifeq ($(INCLUDE_MTD_TYPE1), y)
+DFLAGS += -DINCLUDE_MTD_TYPE1
+MTD_PART_TYPE = 1
+endif
+
+ifeq ($(INCLUDE_MTD_TYPE2), y)
+DFLAGS += -DINCLUDE_MTD_TYPE2
+MTD_PART_TYPE = 2
+endif
+
+ifeq ($(INCLUDE_CLI_FULL_FEATURE), y)
+DFLAGS += -DINCLUDE_CLI_FULL_FEATURE
+endif
+
+ifeq ($(INCLUDE_USER_ACCOUNT ), y) 
+DFLAGS += -DINCLUDE_USER_ACCOUNT
+endif
+
+ifeq ($(INCLUDE_CHGINIT_PWD), y) 
+DFLAGS += -DINCLUDE_CHGINIT_PWD
+endif
+
+ifeq ($(INCLUDE_AUTH_PASSWORD), y) 
+DFLAGS += -DINCLUDE_AUTH_PASSWORD
+endif
+
+ifeq ($(INCLUDE_MEXICO_SPEC), y)
+DFLAGS += -DINCLUDE_MEXICO_SPEC
+endif
+
+ifeq ($(INCLUDE_MALAYSIA_SPEC), y)
+DFLAGS += -DINCLUDE_MALAYSIA_SPEC
+endif
+
+ifeq ($(INCLUDE_RUSSIA_SPEC), y)
+DFLAGS += -DINCLUDE_RUSSIA_SPEC
+endif
+
+ifeq ($(INCLUDE_TW_SPEC), y)
+DFLAGS += -DINCLUDE_TW_SPEC
+endif
+
+ifeq ($(INCLUDE_KOREA_SPEC), y)
+DFLAGS += -DINCLUDE_KOREA_SPEC
+endif
+
+ifeq ($(INCLUDE_CANADA_SPEC), y)
+DFLAGS += -DINCLUDE_CANADA_SPEC
+endif
+
+ifeq ($(INCLUDE_BR_SPEC), y)
+DFLAGS += -DINCLUDE_BR_SPEC
+endif
+
+ifeq ($(INCLUDE_ES_SPEC), y)
+DFLAGS += -DINCLUDE_ES_SPEC
+endif
+
+ifeq ($(INCLUDE_GERMANY_SPEC), y)
+DFLAGS += -DINCLUDE_GERMANY_SPEC
+endif
+
+ifeq ($(INCLUDE_VIETNAM_FPT), y)
+DFLAGS += -DINCLUDE_VIETNAM_FPT
+endif
+
+ifeq ($(INCLUDE_US_SPEC), y)
+DFLAGS += -DINCLUDE_US_SPEC
+endif
+
+ifeq ($(DEFAULT_NO_SPEC), y)
+DFLAGS += -DDEFAULT_NO_SPEC
+endif
+
+ifeq ($(INCLUDE_JAPAN_SPEC),y)
+DFLAGS +=-DINCLUDE_JAPAN_SPEC
+endif
+
+ifeq ($(INCLUDE_PL_SPEC), y)
+DFLAGS +=-DINCLUDE_PL_SPEC
+endif
+
+ifeq ($(INCLUDE_VN_SPEC),y)
+DFLAGS +=-DINCLUDE_VN_SPEC
+DFLAGS +=-DINCLUDE_AUTOREBOOT
+endif
+
+ifeq ($(INCLUDE_FCC_BORDER_CHANNEL_AVOID),y)
+DFLAGS +=-DINCLUDE_FCC_BORDER_CHANNEL_AVOID
+endif
+#################### ETH Type ######################
+ifeq ($(INCLUDE_ETH_LTQ), y) 
+DFLAGS += -DINCLUDE_ETH_LTQ
+endif 
+
+ifeq ($(INCLUDE_ETH_RA), y) 
+DFLAGS += -DINCLUDE_ETH_RA
+endif 
+
+###################### WIFI  ########################
+ifeq ($(INCLUDE_LAN_WLAN), y) 
+DFLAGS += -DINCLUDE_LAN_WLAN 
+endif 
+
+ifeq ($(INCLUDE_WLAN_RA), y) 
+DFLAGS += -DINCLUDE_WLAN_RA
+endif 
+
+ifeq ($(INCLUDE_WLAN_RTL), y) 
+DFLAGS += -DINCLUDE_WLAN_RTL
+endif 
+
+ifeq ($(INCLUDE_WLAN_ATH), y) 
+DFLAGS += -DINCLUDE_WLAN_ATH
+endif 
+
+#added by wangbing 2013-10-22
+ifeq ($(INCLUDE_WLAN_MTK_AC),y)
+DFLAGS += -DINCLUDE_WLAN_MTK_AC
+DFLAGS += -DINCLUDE_LAN_WLAN_AC
+endif 
+
+ifeq ($(INCLUDE_LAN_WLAN_MSSID), y) 
+DFLAGS += -DINCLUDE_LAN_WLAN_MSSID 
+endif 
+
+ifeq ($(INCLUDE_LAN_WLAN_GUESTNETWORK), y) 
+DFLAGS += -DINCLUDE_LAN_WLAN_GUESTNETWORK 
+endif 
+
+ifeq ($(INCLUDE_LAN_WLAN_QUICKSAVE), y) 
+DFLAGS += -DINCLUDE_LAN_WLAN_QUICKSAVE 
+endif 
+
+ifeq ($(INCLUDE_LAN_WLAN_WDS), y) 
+DFLAGS += -DINCLUDE_LAN_WLAN_WDS
+endif 
+
+ifeq ($(INCLUDE_LAN_WLAN_DUALBAND),y)
+DFLAGS += -DINCLUDE_LAN_WLAN_DUALBAND
+endif
+
+ifeq ($(INCLUDE_LAN_WLAN_DUALBAND_DIF_MAC),y)
+DFLAGS += -DINCLUDE_LAN_WLAN_DUALBAND_DIF_MAC
+endif
+
+ifeq ($(INCLUDE_LAN_WLAN_DIFFERENT_CHIP),y)
+DFLAGS += -DINCLUDE_LAN_WLAN_DIFFERENT_CHIP
+endif
+
+ifeq ($(INCLUDE_LAN_WLAN_8021X), y) 
+DFLAGS += -DINCLUDE_LAN_WLAN_802_1X
+endif 
+
+ifeq ($(INCLUDE_LAN_WLAN_SCHEDULE), y)
+DFLAGS += -DINCLUDE_LAN_WLAN_SCHEDULE
+endif
+
+ifeq ($(INCLUDE_LAN_WLAN_SCHEDULE_ONLY_FOR_GUEST), y)
+DFLAGS += -DINCLUDE_LAN_WLAN_SCHEDULE_ONLY_FOR_GUEST
+endif
+
+ifeq ($(INCLUDE_LAN_WLAN_GUEST_TIMEOUT), y)
+DFLAGS += -DINCLUDE_LAN_WLAN_GUEST_TIMEOUT
+endif
+
+ifeq ($(INCLUDE_WIFI_CERTIFIED), y)
+DFLAGS += -DINCLUDE_WIFI_CERTIFIED
+endif
+
+ifeq ($(INCLUDE_ISRAEL_SPEC), y)
+DFLAGS += -DINCLUDE_ISRAEL_SPEC
+endif
+
+ifeq ($(INCLUDE_WIFI_5G), y)
+DFLAGS += -DINCLUDE_WIFI_5G
+endif
+
+# added by yanglianxiang 2014-7-23
+ifeq ($(INCLUDE_WIFI_5G_CHIP_MT7610E), y)
+DFLAGS += -DINCLUDE_WIFI_5G_CHIP_MT7610E
+else ifeq ($(INCLUDE_WIFI_5G_CHIP_MT7612E), y)
+DFLAGS += -DINCLUDE_WIFI_5G_CHIP_MT7612E
+# for ated_tp
+export WT_FLAGS += -DINCLUDE_WIFI_5G_CHIP_MT7612E
+endif 
+
+
+###################### PON  ########################
+
+ifeq ($(strip $(INCLUDE_CPU_88F6550)),y)
+DFLAGS += -DINCLUDE_PON_VG1530_ENV
+DFLAGS += -DINCLUDE_PON_MARVELL_SW_LIB
+endif
+
+ifeq ($(INCLUDE_PON), y) 
+DFLAGS += -DINCLUDE_PON
+endif 
+
+ifeq ($(INCLUDE_PON_EPON), y) 
+DFLAGS += -DINCLUDE_PON_EPON
+endif 
+
+ifeq ($(INCLUDE_PON_GPON), y)
+DFLAGS += -DINCLUDE_PON_GPON
+endif
+
+#################### Function ######################
+
+ifeq ($(INCLUDE_BRIDGING), y)
+DFLAGS += -DINCLUDE_BRIDGING
+endif
+
+ifeq ($(INCLUDE_ADSLWAN), y)
+DFLAGS += -DINCLUDE_ADSLWAN
+endif
+
+ifeq ($(INCLUDE_ADSL_RA), y)
+DFLAGS += -DINCLUDE_ADSL_RA
+endif
+
+ifeq ($(INCLUDE_ADSL_RTL), y)
+DFLAGS += -DINCLUDE_ADSL_RTL
+endif
+
+ifeq ($(INCLUDE_ADSL_LTQ), y)
+DFLAGS += -DINCLUDE_ADSL_LTQ
+endif
+
+ifeq ($(INCLUDE_ETHERNET_WAN), y)
+DFLAGS += -DINCLUDE_ETHERNET_WAN
+endif
+
+ifeq ($(INCLUDE_IGMP), y)
+DFLAGS += -DINCLUDE_IGMP
+endif
+
+#add by wanghao
+ifeq ($(INCLUDE_IGMP_FORCEVERSION), y)
+DFLAGS += -DINCLUDE_IGMP_FORCEVERSION
+endif
+#add end
+
+ifeq ($(INCLUDE_IPTV), y)
+DFLAGS += -DINCLUDE_IPTV
+endif
+
+ifeq ($(INCLUDE_AUTO_PVC), y)
+DFLAGS += -DINCLUDE_AUTO_PVC
+endif
+
+ifeq ($(INCLUDE_RIP), y)
+DFLAGS += -DINCLUDE_RIP
+endif
+
+ifeq ($(INCLUDE_SNMP), y)
+DFLAGS += -DINCLUDE_SNMP
+endif
+
+ifeq ($(INCLUDE_IPPING_DIAG), y)
+DFLAGS += -DINCLUDE_IPPING_DIAG
+endif
+
+ifeq ($(INCLUDE_TRACEROUTE_DIAG), y)
+DFLAGS += -DINCLUDE_TRACEROUTE_DIAG
+endif
+
+ifeq ($(INCLUDE_SSL), y)
+DFLAGS += -DINCLUDE_SSL
+endif
+
+ifeq ($(INCLUDE_CWMP), y)
+DFLAGS += -DINCLUDE_CWMP
+endif
+
+ifeq ($(INCLUDE_CWMP_SSL), y)
+DFLAGS += -DINCLUDE_CWMP_SSL
+export INCLUDE_CWMP_SSL
+ifeq ($(INCLUDE_CWMP_SSL_VERIFY_PEER), y)
+DFLAGS += -DINCLUDE_CWMP_SSL_VERIFY_PEER
+export INCLUDE_CWMP_SSL_VERIFY_PEER
+endif
+endif
+
+ifeq ($(INCLUDE_DIGITAL_SIGNATURE), y)
+DFLAGS += -DINCLUDE_DIGITAL_SIGNATURE
+endif
+
+ifeq ($(INCLUDE_DDNS), y)
+DFLAGS += -DINCLUDE_DDNS
+endif
+
+ifeq ($(INCLUDE_DDNS_PH), y)
+DFLAGS += -DINCLUDE_DDNS_PH
+endif
+
+ifeq ($(INCLUDE_DYNDNS), y)
+DFLAGS += -DINCLUDE_DYNDNS
+endif
+
+ifeq ($(INCLUDE_NOIPDNS), y)
+DFLAGS += -DINCLUDE_NOIPDNS
+endif
+
+ifeq ($(INCLUDE_CMXDNS), y)
+DFLAGS += -DINCLUDE_CMXDNS
+endif
+
+ifeq ($(INCLUDE_ALG), y)
+DFLAGS += -DINCLUDE_ALG
+endif
+
+ifeq ($(INCLUDE_ALG_H323), y)
+DFLAGS += -DINCLUDE_ALG_H323
+endif
+
+ifeq ($(INCLUDE_ALG_SIP), y)
+DFLAGS += -DINCLUDE_ALG_SIP
+endif
+
+ifeq ($(INCLUDE_MIC), y)
+DFLAGS += -DINCLUDE_MIC
+endif
+
+ifeq ($(INCLUDE_TDDP), y)
+DFLAGS += -DINCLUDE_TDDP
+endif
+
+ifeq ($(INCLUDE_AUTOREBOOT), y)
+DFLAGS += -DINCLUDE_AUTOREBOOT
+endif
+
+#NOTE:INCLUDE_VOIP in voip.mak
+ifeq ($(INCLUDE_VOIP), y)
+DFLAGS += $(VOIP_DFLAGS)
+DF_FLAGS += $(VOIP_CFLAGS)
+endif
+
+ifeq ($(INCLUDE_IPV6), y)
+DFLAGS += -DINCLUDE_IPV6
+
+ifeq ($(INCLUDE_IPV6_MLD), y)
+DFLAGS += -DINCLUDE_IPV6_MLD
+endif
+
+ifeq ($(INCLUDE_IPV6_SLAAC), y)
+DFLAGS += -DINCLUDE_IPV6_SLAAC
+endif
+
+ifeq ($(INCLUDE_IPV6_HTTP), y)
+DFLAGS += -DINCLUDE_IPV6_HTTP
+endif
+
+ifeq ($(INCLUDE_IP6_WAN_NOT_ASSIGN_ADDR), y)
+DFLAGS += -DINCLUDE_IP6_WAN_NOT_ASSIGN_ADDR
+endif 
+
+ifeq ($(INCLUDE_IPV6_PASS_THROUGH), y)
+DFLAGS += -DINCLUDE_IPV6_PASS_THROUGH
+endif
+
+endif
+
+ifeq ($(INCLUDE_USB), y)
+DFLAGS += -DINCLUDE_USB
+endif
+
+ifeq ($(INCLUDE_USB_OVER_IP), y)
+DFLAGS += -DINCLUDE_USB_OVER_IP
+endif
+
+ifeq ($(INCLUDE_USB_OVER_IP_TPLINK), y)
+DFLAGS += -DINCLUDE_USB_OVER_IP_TPLINK
+endif
+
+ifeq ($(INCLUDE_USB_OVER_IP_KCODES), y)
+DFLAGS += -DINCLUDE_USB_OVER_IP_KCODES
+endif
+
+ifeq ($(INCLUDE_USB_STORAGE), y)
+DFLAGS += -DINCLUDE_USB_STORAGE
+endif
+
+ifeq ($(INCLUDE_USB_MEDIA_SERVER), y)
+DFLAGS += -DINCLUDE_USB_MEDIA_SERVER
+endif
+
+ifeq ($(INCLUDE_USB_SAMBA_SERVER), y)
+DFLAGS += -DINCLUDE_USB_SAMBA_SERVER
+endif
+
+ifeq ($(INCLUDE_USB_FTP_SERVER), y)
+DFLAGS += -DINCLUDE_USB_FTP_SERVER
+endif
+
+ifeq ($(INCLUDE_USB_3G_DONGLE), y)
+DFLAGS += -DINCLUDE_USB_3G_DONGLE
+endif
+
+ifeq ($(INCLUDE_IPSEC), y)
+DFLAGS += -DINCLUDE_IPSEC
+endif
+
+ifeq ($(INCLUDE_WAN_MODE), y)
+DFLAGS += -DINCLUDE_WAN_MODE
+endif
+
+ifeq ($(INCLUDE_QOS), y)
+DFLAGS += -DINCLUDE_QOS
+endif
+
+ifeq ($(INCLUDE_ANNEXB), y)
+DFLAGS += -DINCLUDE_ANNEXB
+endif
+
+ifeq ($(INCLUDE_POLICY_ROUTE), y)
+DFLAGS += -DINCLUDE_POLICY_ROUTE
+endif
+
+ifeq ($(INCLUDE_DUAL_ACCESS), y)
+DFLAGS += -DINCLUDE_DUAL_ACCESS
+endif
+
+ifeq ($(INCLUDE_L2TP), y)
+DFLAGS += -DINCLUDE_L2TP
+endif
+
+ifeq ($(INCLUDE_PPTP), y)
+DFLAGS += -DINCLUDE_PPTP
+endif
+
+ifeq ($(INCLUDE_ACL), y)
+DFLAGS += -DINCLUDE_ACL
+ifeq ($(INCLUDE_ACL_ADVANCE), y)
+DFLAGS += -DINCLUDE_ACL_ADVANCE
+endif
+endif
+
+ifeq ($(INCLUDE_PORTABLE_APP), y)
+DFLAGS += -DINCLUDE_PORTABLE_APP
+endif
+
+ifeq ($(INCLUDE_WAN_TYPE_DETECT), y)
+DFLAGS += -DINCLUDE_WAN_TYPE_DETECT
+endif
+
+ifeq ($(INCLUDE_BPA), y)
+DFLAGS += -DINCLUDE_BPA
+endif
+
+# new designed VLAN
+ifeq ($(INCLUDE_X_TP_VLAN), y)
+DFLAGS += -DINCLUDE_X_TP_VLAN
+endif
+
+ifeq ($(INCLUDE_FORBID_WAN_PING), y)
+DFLAGS += -DINCLUDE_FORBID_WAN_PING
+endif
+
+DF_FLAGS += $(DFLAGS)
+
+
+ifeq ($(PENNYTEL), y) 
+DF_FLAGS += -DPENNYTEL
+endif 
+
+
+WEBFLAGS += WEB_INCLUDE_TEST=0
+
+ifeq ($(WEB_INCLUDE_MULTI_EWAN), y)
+WEBFLAGS += WEB_INCLUDE_MULTI_EWAN=1
+else
+WEBFLAGS += WEB_INCLUDE_MULTI_EWAN=0
+endif
+
+ifeq ($(WEB_INCLUDE_DST), y)
+WEBFLAGS += WEB_INCLUDE_DST=1
+else
+WEBFLAGS += WEB_INCLUDE_DST=0
+endif
+
+ifeq ($(INCLUDE_IP6_WAN_NOT_ASSIGN_ADDR), y)
+WEBFLAGS += INCLUDE_IP6_WAN_NOT_ASSIGN_ADDR=1
+else
+WEBFLAGS += INCLUDE_IP6_WAN_NOT_ASSIGN_ADDR=0
+endif
+
+ifeq ($(INCLUDE_UN_IPTV), y)
+WEBFLAGS += INCLUDE_UN_IPTV=1
+DFLAGS += -DINCLUDE_UN_IPTV
+else
+WEBFLAGS += INCLUDE_UN_IPTV=0
+endif
+
+ifeq ($(strip $(INCLUDE_ONLY_ONE_LOGIN)),y)
+DFLAGS += -DINCLUDE_ONLY_ONE_LOGIN
+endif
+
+ifeq ($(strip $(INCLUDE_SWITCH_MT7628)), y)
+DFLAGS += -DINCLUDE_SWITCH_MT7628
+endif
+
+DFLAGS += -DINCLUDE_$(MODEL)
+
+####################################################
+#
+#Export some variable        
+#
+####################################################	
+
+export TOOLPREFIX
+export HOST
+#For modules build & br2684ctl build
+export KERNELPATH
+#For install kernel modules
+export INSTALL_MOD_PATH
+#For code control, placed different target file
+export OBJ_DIR
+#For function conditional compilation
+export DF_FLAGS
+
+export TOP_PATH
+
+export OS_LIB_PATH
+
+export PRIVATE_LIB_BIN_PATH
+
+export PRIVATE_APPS_BIN_PATH
+
+export TP_MODULES_PATH
+
+#For complier
+export CC
+export LD
+export AR
+export STRIP
+export RANLIB
+
+####################################################
+#
+#Compilation environment         
+#
+####################################################
+env_build:
+ifeq ($(strip $(SUPPLIER)),mtk)
+ifneq ($(shell id -u), 0)
+	@echo "This target must be run as root."
+else
+	@mkdir /opt/trendchip/
+	@cp $(TOP_PATH)/$(SUPPLIER)/tools/toolchain/mips-linux-uclibc.tar.bz2 /opt/trendchip/
+	@cd /opt/trendchip/ && tar -jxf mips-linux-uclibc.tar.bz2
+endif
+endif
+
+ifeq ($(strip $(SUPPLIER)),lantiq)
+	@echo "Lantiq evn_build"
+	cp -f $(TOP_PATH)/$(SUPPLIER)/dl/atm.h $(TOOLCHAIN_DIR)/usr/include/linux/atm.h
+endif
+
+ifneq ($(findstring $(SUPPLIER),mtk_ApSoC_4120 mtk_ApSoC_4320), )
+	@if test -d /opt/buildroot-gcc463; \
+	then \
+		echo "toolchain buildroot-gcc463 exists." ; \
+	else \
+		@echo "Uncompressing toolchain..." ; \
+		@cp $(TOP_PATH)/$(SUPPLIER)/tools/toolchain/buildroot-gcc463.tar.bz2 /opt/ ;\
+		@cd /opt && tar -jxf buildroot-gcc463.tar.bz2 && rm -f buildroot-gcc463.tar.bz2 ;\
+	fi; 
+endif
+
+	@echo "env_build done!"
+
+####################################################
+#
+#Menuconfig         
+#
+####################################################
+menuconfig:
+	cp $(BUILD_PATH)/config/$(MODEL).config $(BUILD_PATH)/.config
+	$(BUILD_PATH)/scripts/config/mconf $(BUILD_PATH)/sysdeps/linux/Config.in
+	cp $(BUILD_PATH)/.config $(BUILD_PATH)/config/$(MODEL).config
+	@if egrep "^INCLUDE_CPU_TC3182=y" .config > /dev/null; then \
+		cd $(TOP_PATH)/ralink && $(MAKE) PROFILE=tc3182 menuconfig; \
+	fi
+	@if egrep "^INCLUDE_CPU_TC3162U=y" .config > /dev/null; then \
+		cd $(TOP_PATH)/ralink && $(MAKE) PROFILE=tc3162u menuconfig; \
+	fi
+# zl added 2011-10-18
+	@if egrep "^INCLUDE_CPU_RTL8672=y" .config > /dev/null; then \
+		cd $(TOP_PATH)/realtek && $(MAKE) preconfig2630_01 && $(MAKE) menuconfig;\
+	fi
+# end--added
+	@if egrep "^INCLUDE_CPU_VR268=y" .config > /dev/null; then \
+		cd $(TOP_PATH)/lantiq && $(MAKE) menuconfig;\
+	fi
+# wanghao added 2013-10-12 for Archer C2
+	@if egrep "^INCLUDE_CPU_MT7620A=y" .config > /dev/null; then \
+		echo "TODO" \
+		#cd $(TOP_PATH)/mtk && $(MAKE) menuconfig; \
+	fi
+# add end
+	@if egrep "^INCLUDE_CPU_RT63368=y" .config > /dev/null; then \
+		cd $(TOP_PATH)/mtk && $(MAKE) PROFILE=rt63368_demo menuconfig; \
+	fi
+	@if egrep "^INCLUDE_CPU_RT63365=y" .config > /dev/null; then \
+		cd $(TOP_PATH)/mtk && $(MAKE) PROFILE=rt63365_demo menuconfig; \
+	fi
+	
+####################################################
+#
+#Build bootloader          
+#
+####################################################
+boot_clean:
+ifneq ($(findstring $(SUPPLIER),mtk_ApSoC_4120 mtk_ApSoC_4320), )
+	@if test -f $(TOP_PATH)/$(SUPPLIER)/Uboot/Makefile;then \
+	echo Making uboot clean; \
+	cd $(TOP_PATH)/$(SUPPLIER)/Uboot && make distclean; \
+	else echo "Do nothing for clean uboot"; \
+	fi
+endif
+	
+boot_menuconfig:
+ifneq ($(findstring $(SUPPLIER),mtk_ApSoC_4120 mtk_ApSoC_4320), )
+	cp -f $(TOP_PATH)/$(SUPPLIER)/Uboot/$(MODEL)_config $(TOP_PATH)/$(SUPPLIER)/Uboot/.config
+	cd $(TOP_PATH)/$(SUPPLIER)/Uboot && make menuconfig
+	cp -f $(TOP_PATH)/$(SUPPLIER)/Uboot/.config $(TOP_PATH)/$(SUPPLIER)/Uboot/$(MODEL)_config
+	cp -f $(TOP_PATH)/$(SUPPLIER)/Uboot/autoconf.h $(TOP_PATH)/$(SUPPLIER)/Uboot/$(MODEL)_autoconf_h
+endif	
+	
+boot_build:
+	@echo "Make Boot Build"
+ifneq ($(findstring $(SUPPLIER),mtk_ApSoC_4120 mtk_ApSoC_4320), )
+	@echo "Should build in Uboot folder with gcc342 by now!"
+	test -d $(GCC_PATH)/buildroot-gcc342 || (cp $(TOP_PATH)/$(SUPPLIER)/Uboot/buildroot-gcc342.tar.bz2 $(GCC_PATH)/ && \
+	cd $(GCC_PATH)/ && tar -jxf buildroot-gcc342.tar.bz2 && rm -f buildroot-gcc342.tar.bz2)
+	cp $(TOP_PATH)/$(SUPPLIER)/Uboot/$(MODEL)_config $(TOP_PATH)/$(SUPPLIER)/Uboot/.config
+	cp $(TOP_PATH)/$(SUPPLIER)/Uboot/$(MODEL)_autoconf_h $(TOP_PATH)/$(SUPPLIER)/Uboot/autoconf.h
+	cd $(TOP_PATH)/$(SUPPLIER)/Uboot && make 
+	test -d $(BOOT_TG_PATH) || mkdir -p $(BOOT_TG_PATH)
+	cp $(TOP_PATH)/$(SUPPLIER)/Uboot/uboot.bin $(BOOT_TG_PATH)/boot_$(MODEL).bin
+endif
+
+ifeq ($(strip $(SUPPLIER)),mtk)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE)_demo bootbase_clean; make PROFILE=$(CPU_TYPE)_demo bootbase
+	test -d $(BOOT_TG_PATH) || mkdir -p $(BOOT_TG_PATH)
+	cp $(TOP_PATH)/$(SUPPLIER)/bootrom/tcboot.bin $(BOOT_TG_PATH)/boot.bin
+endif
+
+ifeq ($(strip $(SUPPLIER)),ralink)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE) bootbase_clean; make PROFILE=$(CPU_TYPE) bootbase
+	test -d $(BOOT_TG_PATH) || mkdir -p $(BOOT_TG_PATH)
+	cp $(TOP_PATH)/$(SUPPLIER)/bootrom/tcboot.bin $(BOOT_TG_PATH)/boot.bin
+endif
+
+ifeq ($(strip $(SUPPLIER)),realtek)
+	cd $(TOP_PATH)/$(SUPPLIER)/boot72.14e && make cleanall; make  #make menuconfig; make
+	test -d $(BOOT_TG_PATH) || mkdir -p $(BOOT_TG_PATH)
+	cp $(TOP_PATH)/$(SUPPLIER)/boot72.14e/boot/boot.bin $(BOOT_TG_PATH)/
+endif
+
+ifeq ($(strip $(SUPPLIER)),lantiq)
+	cd $(TOP_PATH)/$(SUPPLIER)/build_dir/linux-ltqcpe_2_6_32_LANTIQ/u-boot-2010.06;chmod a+x ./scripts_platform/*;make clean distclean;make vr9_config; grep 'CONFIG_UBOOT_' $(TOP_PATH)/$(SUPPLIER)/.config | sed -e "s,\\(# \)\\?CONFIG_UBOOT_\\(.*\\),\\1\\2,g" > $(TOP_PATH)/$(SUPPLIER)/build_dir/linux-ltqcpe_2_6_32_LANTIQ/u-boot-2010.06/.config; make oldconfig;make clean all CROSS_COMPILE=mips-linux-uclibc-
+	test -d $(BOOT_TG_PATH) || mkdir -p $(BOOT_TG_PATH)
+	cp $(TOP_PATH)/$(SUPPLIER)/build_dir/linux-ltqcpe_2_6_32_LANTIQ/u-boot-2010.06/u-boot.lq $(BOOT_TG_PATH)/boot.bin
+endif
+
+####################################################
+#
+#Build linux kernel           
+#
+####################################################
+kernel_prepare:
+ifneq ($(findstring $(SUPPLIER),mtk_ApSoC_4120 mtk_ApSoC_4320), )
+#Port from RT288x_SDK 4.1.2.0, yuanshang, 2013-10-31
+ifeq ($(REGION),)
+ifeq ($(INCLUDE_RUSSIA_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Russia_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_MALAYSIA_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Malaysia_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_TW_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_TW_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_KOREA_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Korea_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_UN_IPTV), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_UN_IPTV_config $(KERNELPATH)/.config
+else
+	cp $(KERNELPATH)/mt7628_config $(KERNELPATH)/.config
+endif
+else
+#	cp $(BUILD_PATH)/config/$(MODEL)/$(REGION)/kernel.config $(KERNELPATH)/.config
+	cd $(KERNELPATH) && $(MAKE) TP_CONFIG_FILE=$(KERNELPATH)/mt7628_config $(MODEL)_defconfig
+endif  # REGION 
+	$(MAKE) -C $(KERNELPATH) prepare
+	rm -fr $(KERNELPATH)/include/asm
+	rm -fr $(KERNELPATH)/arch/mips/include/asm/rt2880
+	rm -fr $(KERNELPATH)/include/linux/autoconf.h
+	
+	ln -sf ../arch/mips/include/asm $(KERNELPATH)/include/asm
+	ln -sf ./mach-ralink $(KERNELPATH)/arch/mips/include/asm/rt2880
+	ln -sf ../../include/generated/autoconf.h $(KERNELPATH)/include/linux/autoconf.h
+endif
+		
+kernel_build:kernel_prepare
+	@echo "Make Kernel Build"
+ifeq ($(REGION),)
+ifeq ($(INCLUDE_RUSSIA_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Russia_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_MALAYSIA_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Malaysia_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_TW_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_TW_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_KOREA_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Korea_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_UN_IPTV), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_UN_IPTV_config $(KERNELPATH)/.config
+else
+	cp $(KERNELPATH)/mt7628_config $(KERNELPATH)/.config
+endif
+else
+#	-cp $(BUILD_PATH)/config/$(MODEL)/$(REGION)/kernel.config $(KERNELPATH)/.config
+	cd $(KERNELPATH) && $(MAKE) TP_CONFIG_FILE=$(KERNELPATH)/mt7628_config $(MODEL)_defconfig
+endif  # REGION 
+	cd $(KERNELPATH) && $(MAKE) V=2 linux.7z
+	test -d $(KERNEL_TG_PATH) || mkdir -p $(KERNEL_TG_PATH)
+	cp $(KERNELPATH)/linux.7z $(KERNEL_TG_PATH)/
+	cp $(KERNELPATH)/vmlinux $(KERNEL_TG_PATH)/
+
+kernel_menuconfig:
+ifeq ($(REGION),)
+ifeq ($(INCLUDE_RUSSIA_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Russia_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_MALAYSIA_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Malaysia_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_TW_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_TW_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_KOREA_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Korea_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_UN_IPTV), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_UN_IPTV_config $(KERNELPATH)/.config
+else
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_config $(KERNELPATH)/.config
+endif
+else
+#	cp $(BUILD_PATH)/config/$(MODEL)/$(REGION)/kernel.config $(KERNELPATH)/.config
+	cd $(KERNELPATH) && $(MAKE) TP_CONFIG_FILE=$(BUILD_PATH)/config/$(MODEL)/$(REGION)/kernel.config $(MODEL)_defconfig
+endif  # REGION 
+	cd $(KERNELPATH) && $(MAKE) menuconfig
+ifeq ($(INCLUDE_RUSSIA_SPEC), y)
+	cp $(KERNELPATH)/.config $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Russia_config
+else ifeq ($(INCLUDE_MALAYSIA_SPEC), y)
+	cp $(KERNELPATH)/.config $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Malaysia_config
+else ifeq ($(INCLUDE_TW_SPEC), y)
+	cp $(KERNELPATH)/.config $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_TW_config
+else ifeq ($(INCLUDE_KOREA_SPEC), y)
+	cp $(KERNELPATH)/.config $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Korea_config
+else ifeq ($(INCLUDE_UN_IPTV), y)
+	cp $(KERNELPATH)/.config $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_UN_IPTV_config
+else
+	cp $(KERNELPATH)/.config $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_config
+endif
+	@echo "Replace Kernel Config File"
+
+####################################################
+#
+#Build all kernel modules
+#
+####################################################
+modules_build:kernel_modules public_modules misc_modules ipt_modules wlan_modules tp_domain ipv6PassThrough_modules
+
+kernel_modules:
+	@echo "Making Kernel Modules"
+ifeq ($(REGION),)
+ifeq ($(INCLUDE_RUSSIA_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Russia_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_MALAYSIA_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Malaysia_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_TW_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_TW_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_KOREA_SPEC), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_Korea_config $(KERNELPATH)/.config
+else ifeq ($(INCLUDE_UN_IPTV), y)
+	cp $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_UN_IPTV_config $(KERNELPATH)/.config
+else
+	cp $(KERNELPATH)/mt7628_config $(KERNELPATH)/.config
+endif
+else
+#	cp $(BUILD_PATH)/config/$(MODEL)/$(REGION)/kernel.config $(KERNELPATH)/.config
+	cd $(KERNELPATH) && $(MAKE) TP_CONFIG_FILE=$(KERNELPATH)/mt7628_config $(MODEL)_defconfig
+endif  # REGION 
+	cd $(KERNELPATH) && $(MAKE) modules
+	cd $(KERNELPATH) && $(MAKE) DEPMOD=true modules_install
+	test -d $(MODULE_TG_PATH) || mkdir -p $(MODULE_TG_PATH) && mkdir -p $(MODULE_TG_PATH)/kmdir/
+ifneq ($(findstring $(CPU_TYPE),mt7620a mt7628), )
+	cp -pR $(INSTALL_MOD_PATH)/lib/modules/$(KERNELVERSION)/kernel $(MODULE_TG_PATH)/kmdir/
+else
+	cp -pR $(INSTALL_MOD_PATH)/lib/modules/$(KERNELVERSION)/* $(MODULE_TG_PATH)/kmdir/
+endif
+
+public_modules:
+	@echo "Making public modules"
+
+ifeq ($(INCLUDE_USB_OVER_IP_TPLINK), y)
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/public/usbip-0.1.7 && $(MAKE)  
+endif 
+ 
+ifeq ($(INCLUDE_PPTP), y)
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/public/accel-pptp-0.8.5 && $(MAKE)  
+endif 
+ 
+ifeq ($(INCLUDE_L2TP), y) 
+ifeq ($(KERNELVERSION), 2.6.22.15)
+	@echo "Kernel version is lower than 2.6.23, use pppol2tp-kmod-0.17" 
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/public/pppol2tp-kmod-0.17 && $(MAKE)  
+else
+	@echo "Kernel version is not lower than 2.6.23, use pppol2tp v1.0 driver in kernel"
+endif
+endif
+
+
+misc_modules:
+	@echo "Making Other Modules"
+
+ifeq ($(strip $(SUPPLIER)),mtk)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE)_demo drivers
+	cp -pR $(TOP_PATH)/$(SUPPLIER)/filesystem/lib/modules/* $(MODULE_TG_PATH)
+endif	#SUPPLIER
+
+ifneq ($(strip $(INCLUDE_VOIP)),) 
+	cd $(TP_MODULES_PATH)/voip/ && $(MAKE)  
+endif
+
+ipt_modules:
+	@echo "Making ipt_STAT Modules"
+	cd $(MODULES_PATH)/ipt_STAT && $(MAKE)
+	cd $(MODULES_PATH)/ipt_STAT && cp ipt_STAT.ko $(MODULE_TG_PATH)/
+
+tp_domain:
+	@echo "Making tp_domain Modules"
+	cd $(MODULES_PATH)/tp_domain && $(MAKE)
+	cd $(MODULES_PATH)/tp_domain && cp tp_domain.ko $(MODULE_TG_PATH)/
+
+wlan_modules:
+	@echo "Making WLAN Modules"
+	
+ifeq ($(strip $(SUPPLIER)),mtk)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE)_demo wlan
+	cp -pR $(TOP_PATH)/$(SUPPLIER)/filesystem/lib/modules/* $(MODULE_TG_PATH)
+endif	#SUPPLIER
+
+.PHONY: ipv6PassThrough_modules
+ipv6PassThrough_modules:	
+ifeq ($(INCLUDE_IPV6_PASS_THROUGH), y)
+	@echo "Making ipv6_pass_through Modules"
+	cd $(MODULES_PATH)/ipv6_pass_through && $(MAKE)
+	cd $(MODULES_PATH)/ipv6_pass_through && cp ipv6_pass_through.ko $(MODULE_TG_PATH)	
+else 
+	@echo "build no IPv6 passthrough"
+endif 	
+
+####################################################
+#
+#Build libs
+#
+####################################################
+
+
+####################################################
+#
+#Build wireless, include driver and tools
+#
+####################################################
+hal_build:
+	@echo making Atheros HAL
+	if test -n "$(TARGETARCH)"; then \
+	cd $(HAL)/linux && make TARGET=$(TARGETARCH) clean && \
+	make TARGET=$(TARGETARCH) && make TARGET=$(TARGETARCH) release; \
+	fi
+
+wireless_driver:hal_build
+	@echo making Atheros UMAC
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/private/wlan/os/linux && \
+	$(MAKEARCH) TARGET=$(TARGETARCH) clean \
+	&& $(MAKEARCH) TARGET=$(TARGETARCH) && \
+	$(MAKEARCH)  TARGET=$(TARGETARCH) install
+
+wireless_tools:
+	@echo making wireless_tools
+	if test -n "$(WIRELESSTOOLS)"; then \
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/$(WIRELESSTOOLS); make clean; make; \
+	cp -f $(WIRELESSTOOLSLIB) $(INSTALL_WIRELESS)/lib; \
+	cp -f iwpriv $(INSTALL_WIRELESS)/sbin; \
+	cp -f iwconfig $(INSTALL_WIRELESS)/sbin; \
+	cp -f iwlist $(INSTALL_WIRELESS)/sbin; \
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/private/wlan/os/linux/tools && \
+	make clean; \
+	make wlanconfig BUILD_STATIC=$(BUILD_STATIC); \
+	cp -f wlanconfig $(INSTALL_WIRELESS)/sbin; \
+	fi
+
+art_mod:
+	@echo making art modules
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/art && make all
+
+reg:
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/private/wlan/os/linux/tools && \
+	make reg;
+sar:
+	@echo making sar
+	cd ../apps/public/sysstat-6.0.1/ && rm -f sysstat.cron.daily && rm -f sysstat.cron.hourly && $(MAKE) CC=$(TOOLPREFIX)gcc 
+	cd ../apps/public/sysstat-6.0.1/ && cp sar $(INSTALL_WIRELESS)/sbin
+	cd ../apps/public/sysstat-6.0.1/ && cp sadc $(INSTALL_WIRELESS)/sbin
+
+wpa2:wpa2_clean
+	@echo Making wpa2 at 'date'
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/wpa2 && $(MAKE) \
+		CC=$(TOOLPREFIX)gcc AR=$(TOOLPREFIX)ar LD=$(TOOLPREFIX)ld
+	@echo End Making wpa2 at 'date'
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/wpa2/common && \
+	$(STRIP) *.so && cp *.so $(INSTALL_WIRELESS)/lib
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/wpa2/hostapd && \
+	$(STRIP) hostapd && cp hostapd $(INSTALL_WIRELESS)/sbin
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/wpa2/wpa_supplicant && \
+	$(STRIP) wpa_supplicant && cp wpa_supplicant $(INSTALL_WIRELESS)/sbin
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/wpa2/wpatalk && \
+	$(STRIP) wpatalk && cp wpatalk $(INSTALL_WIRELESS)/sbin
+
+wpa2_clean:
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/wpa2 && $(MAKE) clean
+
+ifeq ($(strip $(SUPPLIER)),lantiq)
+wlan_build: wireless_driver wireless_tools wpa2
+endif
+
+wlan_clean:wpa2_clean
+	cd $(HAL)/linux && make TARGET=$(TARGETARCH) clean
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/private/wlan/os/linux && $(MAKEARCH) TARGET=$(TARGETARCH) clean
+	make -C $(TOP_PATH)/$(SUPPLIER)/modules/art clean
+	make -C $(TOP_PATH)/$(SUPPLIER)/modules/$(WIRELESSTOOLS) clean
+
+####################################################
+#
+#Build apps
+#
+####################################################
+
+#openssl should before pjsip case pjsip need it
+#libusb&libcompat should before handle_card&usb_modeswitch
+.PHONY: apps_build
+apps_build: public_apps_build private_apps_build 
+
+####################################################
+#
+#Build private apps
+#
+####################################################
+
+.PHONY: private_apps_build
+private_apps_build: cmm tcci voip wirelesstool sarctl adslctrl ethctrl wl_tools \
+				hotplug usbp dsl_app handle_card wirelesstool mtk_tools
+
+.PHONY: cmm
+cmm:
+	cd $(PRIVATE_APPS_PATH)/user/ && $(MAKE) apps_build xmode
+
+.PHONY: mtk_tools
+mtk_tools:
+ifeq ($(strip $(SUPPLIER)),mtk_ApSoC_4120)
+	@echo Build MTK APP port from MTK_APSOC_4120
+	@echo Builg reg
+	cd $(TOP_PATH)/$(SUPPLIER)/apps/reg && $(MAKE)
+	@echo Build hw_nat
+	cd $(TOP_PATH)/$(SUPPLIER)/apps/hw_nat && $(MAKE)
+else ifeq ($(strip $(SUPPLIER)),mtk_ApSoC_4320)
+	@echo Build MTK APP port from MTK_APSOC_4320
+	@echo Builg reg
+	cd $(TOP_PATH)/$(SUPPLIER)/apps/reg && $(MAKE)	
+endif
+
+.PHONY: hotplug
+hotplug:
+ifeq ($(INCLUDE_USB_STORAGE), y)
+	cd $(PRIVATE_APPS_PATH)/hotplug/ && $(MAKE)
+else
+
+ifeq ($(INCLUDE_USB_3G_DONGLE), y)
+	cd $(PRIVATE_APPS_PATH)/hotplug/ && $(MAKE)
+endif
+
+endif
+	
+.PHONY: usbp
+usbp:
+ifeq ($(INCLUDE_USB_STORAGE), y)
+	cd $(PRIVATE_APPS_PATH)/usbp/ && $(MAKE)
+endif	
+
+.PHONY: tcci
+tcci:
+ifeq ($(strip $(SUPPLIER)),ralink)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE) tcci
+endif
+
+.PHONY: wirelesstool
+wirelesstool:
+ifeq ($(INCLUDE_LAN_WLAN), y) 
+ifeq ($(strip $(SUPPLIER)),mtk)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE)_demo wirelesstool
+endif
+ifeq ($(strip $(SUPPLIER)),mtk_ApSoC_4120)
+	@echo "build wireless tools"
+	cd $(WIRELESSTOOLS) &&  make realclean && make all;\
+	cp -f ated_tp $(INSTALL_WIRELESS)/sbin;\
+	cp -f $(WIRELESSTOOLSLIB) $(INSTALL_WIRELESS)/lib;\
+	cp -f iwpriv $(INSTALL_WIRELESS)/sbin;\
+        cp -f wlNetlinkTool $(INSTALL_WIRELESS)/sbin
+	
+	#@echo "build wireless tools"
+	#cd $(WIRELESSTOOLS)/../sysstat-9.0.6 &&  make clean && make mpstat;\
+	#cp -f mpstat $(INSTALL_WIRELESS)/sbin
+	
+	@echo "build ated for QA"
+	cd $(WIRELESSTOOLS)/../ated &&  make clean && make all;\
+	cp -f ated $(INSTALL_WIRELESS)/sbin
+
+	echo "Build the rt2860apd for 802.1x"
+	cd $(WIRELESSTOOLS)/../8021x &&  make clean && make all;\
+	cp -f rt2860apd $(INSTALL_WIRELESS)/sbin/;\
+	ln -sf rt2860apd $(INSTALL_WIRELESS)/sbin/rtinicapd
+
+	echo "Build wscd for wps while coexist of dual-band"
+	cd $(WIRELESSTOOLS)/../wsc_upnp/wsc_upnp && chmod -R +rx ./ && make clean && make all;\
+	cp -f wscd $(INSTALL_WIRELESS)/sbin/;\
+	ln -sf wscd $(INSTALL_WIRELESS)/sbin/wscd_5G
+	
+endif
+ifeq ($(strip $(SUPPLIER)),mtk_ApSoC_4320)
+	@echo "build wireless tools"
+	cd $(WIRELESSTOOLS) &&  make realclean && make all;\
+	cp -f ated_tp $(INSTALL_WIRELESS)/sbin;\
+	cp -f $(WIRELESSTOOLSLIB) $(INSTALL_WIRELESS)/lib;\
+	cp -f iwpriv $(INSTALL_WIRELESS)/sbin;\
+	cp -f iwconfig $(INSTALL_WIRELESS)/sbin;\
+	cp -f iwlist $(INSTALL_WIRELESS)/sbin;\
+    cp -f wlNetlinkTool $(INSTALL_WIRELESS)/sbin
+	
+	#@echo "build wireless tools"
+	#cd $(WIRELESSTOOLS)/../sysstat-9.0.6 &&  make clean && make mpstat;\
+	#cp -f mpstat $(INSTALL_WIRELESS)/sbin
+	
+	echo "Build the rt2860apd for 802.1x"
+	cd $(WIRELESSTOOLS)/../8021x &&  make clean && make all;\
+	cp -f rt2860apd $(INSTALL_WIRELESS)/sbin/;\
+	ln -sf rt2860apd $(INSTALL_WIRELESS)/sbin/rtinicapd
+
+	echo "Build wscd for wps while coexist of dual-band"
+	cd $(WIRELESSTOOLS)/../wsc_upnp/wsc_upnp && chmod -R +rx ./ && make clean && make all;\
+	cp -f wscd $(INSTALL_WIRELESS)/sbin/;\
+	ln -sf wscd $(INSTALL_WIRELESS)/sbin/wscd_5G
+	
+endif
+
+else	#INCLUDE_LAN_WLAN
+	@echo no wifi
+endif	#INCLUDE_LAN_WLAN
+
+.PHONY: voip 
+voip:
+ifneq ($(strip $(INCLUDE_VOIP)),)
+	cd $(PRIVATE_APPS_PATH)/voip / && $(MAKE)
+else
+	@echo no voip
+endif
+
+# zl added 2011-10-19
+.PHONY:sarctl
+sarctl:
+ifeq ($(strip $(SUPPLIER)),realtek)
+	cd $(TOP_PATH)/$(SUPPLIER) && make user/sarctl_only
+else
+	@echo no sarctl
+endif
+
+.PHONY:adslctrl
+adslctrl:
+ifeq ($(strip $(SUPPLIER)),realtek)
+	cd $(TOP_PATH)/$(SUPPLIER) && make user/adslctrl_by_tp_only
+else 
+	@echo no adslctrl
+endif
+
+.PHONY:ethctrl
+ethctrl:
+ifeq ($(strip $(SUPPLIER)),realtek)
+	cd $(TOP_PATH)/$(SUPPLIER) && make user/ethctrl_by_tp_only
+else
+	@echo no ethctrl
+endif
+
+.PHONY:wl_tools
+wl_tools:
+ifeq ($(strip $(SUPPLIER)),realtek)
+ifeq ($(INCLUDE_LAN_WLAN), y)
+	cd $(TOP_PATH)/$(SUPPLIER) && make user/wireless_tools_only
+	cd $(TOP_PATH)/$(SUPPLIER) && make user/mini_upnp_only
+	cd $(TOP_PATH)/$(SUPPLIER) && make user/wsc_only
+	cd $(TOP_PATH)/$(SUPPLIER) && make user/auth_only
+	cd $(TOP_PATH)/$(SUPPLIER) && make user/ated_only
+endif
+else
+	@echo no wl_tools
+endif
+
+#end--added
+
+ifeq ($(INCLUDE_ADSLWAN), y)
+.PHONY:dsl_app
+dsl_app:
+ifeq ($(strip $(SUPPLIER)),lantiq)
+	#cd $(TOP_PATH)/$(SUPPLIER) && make V=99 package/feeds/feed_opensource_apps/linux-atm/compile
+	#cd $(TOP_PATH)/$(SUPPLIER) && make V=99 package/feeds/feed_opensource_apps/br2684ctl/compile
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_common/lib-dti/compile
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_dsl_cpe/ifx-dsl-cpe-mei-vrx/compile
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_dsl_cpe/ifx-dsl-cpe-api-vrx/compile
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_dsl_cpe/ifx-dsl-cpe-control-vrx/compile
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_dsl_cpe/ifx-dsl-vr9-firmware-xdsl/compile
+endif
+
+else	#INCLUDE_ADSLWAN
+.PHONY:dsl_app
+dsl_app:
+	@echo no dsl_app
+endif	#INCLUDE_ADSLWAN
+
+.PHONY: handle_card
+handle_card:
+ifeq ($(INCLUDE_USB_3G_DONGLE), y)
+	@echo "Building handle_card"
+	$(MAKE) -C $(PRIVATE_APPS_PATH)/handle_card
+else
+	@echo no handle_card
+endif #INCLUDE_USB_3G_DONGLE
+
+####################################################
+#
+#Build public apps
+#
+####################################################
+
+.PHONY: public_apps_build
+public_apps_build: oslibs libusb libcompat openssl pjsip \
+					br2684ctl busybox tc iptables ebtables pppd ripd \
+					upnplib upnp flex radvd dhcpv6 samba ntfs-3g arpd \
+					usbip vsftp ffmpeg libdlna ushare ip ipsectools \
+					chat usb_modeswitch xl2tpd bigpond ipping traceroute dropbear
+
+.PHONY:oslibs
+oslibs:
+	cd $(PUBLIC_APPS_PATH)/os_libs && $(MAKE)
+					
+.PHONY: busybox
+busybox:
+	cd $(PUBLIC_APPS_PATH)/busybox-1.19.2 && $(MAKE)
+	
+.PHONY: tc
+tc:
+	cd $(PUBLIC_APPS_PATH)/iproute2-2.6.24-rc7 && $(MAKE)
+
+.PHONY: iptables
+iptables:
+	cd $(PUBLIC_APPS_PATH)/iptables-1.4.17 && test -e Makefile || ./configure --host=mips-linux-uclibc --enable-static --disable-shared  
+	cd $(PUBLIC_APPS_PATH)/iptables-1.4.17 && $(MAKE) AR=$(TOOLPREFIX)ar
+	$(STRIP) $(PUBLIC_APPS_PATH)/iptables-1.4.17/iptables/xtables-multi
+
+.PHONY: ebtables
+ebtables:
+	cd $(PUBLIC_APPS_PATH)/ebtables-v2.0.10-4 && $(MAKE) static
+	
+.PHONY: pppd
+pppd:
+	cd $(PUBLIC_APPS_PATH)/ppp-2.4.5/pppd && $(MAKE) INCLUDE_RUSSIA_SPEC=$(INCLUDE_RUSSIA_SPEC) #INCLUDE_IPV6_PPPV6=$(INCLUDE_IPV6_PPPV6)
+	
+.PHONY: br2684ctl
+br2684ctl:
+ifeq ($(INCLUDE_ADSLWAN), y)
+	cd $(PUBLIC_APPS_PATH)/br2684ctl && $(MAKE)
+endif
+	
+.PHONY: arpd
+arpd:
+ifeq ($(INCLUDE_ADSLWAN), y)
+	cd $(PUBLIC_APPS_PATH)/linux-atm && $(MAKE)
+endif
+	
+.PHONY: upnplib
+upnplib:
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/upnp_libs
+	
+.PHONY: upnp
+upnp:
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/IGD
+
+.PHONY: ripd
+ripd:
+ifeq ($(INCLUDE_RIP), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/zebra-0.95a
+else
+	@echo no ripd
+endif
+
+.PHONY: pjsip
+pjsip:
+ifneq ($(strip $(INCLUDE_VOIP)),)
+ifneq ($(strip $(PJSIP_CONFCACHE_EXIST)),)
+	cd $(PUBLIC_APPS_PATH)/pjsip_1.10 && $(MAKE)
+else
+	cd $(PUBLIC_APPS_PATH)/pjsip_1.10 && ./configure --cache-file=./config_cache_file --srcdir=./ --prefix=$(TOOLROOTPATH) --exec-prefix=$(TOOLROOTPATH) --host=mipsel-linux --target=mipsel-linux --disable-speex-aec --disable-l16-codec --disable-gsm-codec --disable-speex-codec --disable-ilbc-codec --disable-g7221-codec --disable-ssl --disable-oss --disable-sound && $(MAKE)
+endif
+else
+	@echo no pjsip 
+endif
+
+.PHONY: usbip
+usbip:
+ifeq ($(INCLUDE_USB_OVER_IP_TPLINK), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/usbip-0.1.7 clean
+	cd $(PUBLIC_APPS_PATH)/usbip-0.1.7 && $(MAKE)
+endif
+
+.PHONY: vsftp
+vsftp:
+ifeq ($(INCLUDE_USB_FTP_SERVER), y)
+	cd $(PUBLIC_APPS_PATH)/vsftpd-2.3.2 && $(MAKE)
+else 
+	@echo no vsftp
+endif
+
+.PHONY: flex
+flex:
+ifeq ($(INCLUDE_IPV6), y)
+	cd $(PUBLIC_APPS_PATH)/flex-2.5.35 && test -e Makefile || ./configure --host=mips-linux 
+	cd $(PUBLIC_APPS_PATH)/flex-2.5.35 && $(MAKE)
+	mkdir -p $(PUBLIC_APPS_PATH)/lib
+	cp -p $(PUBLIC_APPS_PATH)/flex-2.5.35/libfl.a $(PUBLIC_APPS_PATH)/lib
+else 
+	@echo no ipv6 flex
+endif
+
+.PHONY: radvd
+radvd:
+ifeq ($(INCLUDE_IPV6), y)
+	cd $(PUBLIC_APPS_PATH)/radvd-1.5 && $(MAKE)
+else 
+	@echo no ipv6 radvd
+endif
+
+.PHONY: dhcpv6
+dhcpv6:
+ifeq ($(INCLUDE_IPV6), y)
+	cd $(PUBLIC_APPS_PATH)/wide-dhcpv6-20080615 && $(MAKE)
+else 
+	@echo no ipv6 dhcpv6
+endif
+
+.PHONY: ip
+ip: 
+ifeq ($(INCLUDE_IPV6), y)
+	cd $(PUBLIC_APPS_PATH)/iproute2-2.6.39 && $(MAKE)
+else
+	@echo no ipv6 ip
+endif
+
+#for samba and ntfs-3g, zjj, 20111129
+.PHONY: samba
+samba:
+ifeq ($(INCLUDE_USB_SAMBA_SERVER), y)
+	cd $(PUBLIC_APPS_PATH)/samba-3.0.14a/source && $(MAKE)
+	$(STRIP) $(PUBLIC_APPS_PATH)/samba-3.0.14a/source/bin/*
+else 
+	@echo no samba
+endif
+	
+.PHONY: ntfs-3g
+ntfs-3g:
+ifeq ($(INCLUDE_USB_STORAGE), y)
+	cd $(PUBLIC_APPS_PATH)/ntfs-3g_ntfsprogs-2012.1.15 && test -e Makefile || ./configure --build=i686-linux --host=$(HOST) --disable-nfconv
+	cd $(PUBLIC_APPS_PATH)/ntfs-3g_ntfsprogs-2012.1.15 && $(MAKE)
+	$(STRIP) $(PUBLIC_APPS_PATH)/ntfs-3g_ntfsprogs-2012.1.15/libntfs-3g/.libs/libntfs-3g.so.83.0.0
+	$(STRIP) $(PUBLIC_APPS_PATH)/ntfs-3g_ntfsprogs-2012.1.15/src/.libs/ntfs-3g
+	$(STRIP) $(PUBLIC_APPS_PATH)/ntfs-3g_ntfsprogs-2012.1.15/src/.libs/lowntfs-3g
+else 
+	@echo no ntfs-3g+ntfsprogs
+endif
+#end by zjj
+
+#for dlna, LI CHENGLONG
+.PHONY: ffmpeg
+ffmpeg:
+ifeq ($(INCLUDE_USB_MEDIA_SERVER), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/ffmpeg-0.6/
+endif
+
+.PHONY: libdlna
+libdlna:
+ifeq ($(INCLUDE_USB_MEDIA_SERVER), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/libdlna-0.2.3/
+endif
+
+.PHONY: ushare
+ushare:
+ifeq ($(INCLUDE_USB_MEDIA_SERVER), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/ushare-1.1a/
+endif
+#end by LI CHENGLONG
+
+.PHONY: openssl
+openssl:
+ifeq ($(INCLUDE_SSL), y)
+	cd $(PUBLIC_APPS_PATH)/openssl && test -e Makefile || ./Configure shared \
+		no-threads no-zlib no-asm no-gmp no-krb5 no-hw no-cipher no-rfc3779 no-sse2 no-speed \
+		no-md2 no-md4 no-mdc2 no-ripemd no-rc5 no-idea no-bf no-cast no-camellia \
+		no-ec no-dsa no-ecdsa no-store linux-mips \
+	&& sed -i 's/-O3/-Os -DGNU/g' Makefile
+	
+	cd $(PUBLIC_APPS_PATH)/openssl \
+	&& $(MAKE) CC=$(CC) LD=$(LD) SHARED_LDFLAGS="-s"\
+	&& mkdir -p ./lib \
+	&& cp -p ./libcrypto.so.0.9.7 ./lib/ \
+	&& cp -p ./libssl.so.0.9.7 ./lib/ \
+	&& cd ./lib/ \
+	&& ln -sf libcrypto.so.0.9.7 libcrypto.so.0 \
+	&& ln -sf libcrypto.so.0.9.7 libcrypto.so \
+	&& ln -sf libssl.so.0.9.7 libssl.so.0 \
+	&& ln -sf libssl.so.0.9.7 libssl.so
+endif
+
+.PHONY: ipsectools
+ipsectools:
+ifeq ($(INCLUDE_IPSEC), y)
+	cd $(PUBLIC_APPS_PATH)/ipsectools && test -e Makefile || ./configure --host=mips-linux --with-kernel-headers=$(KERNELPATH)/include \
+	--with-openssl=$(PUBLIC_APPS_PATH)/openssl/ --enable-security-context=no --enable-shared=yes \
+	--enable-dpd=yes CFLAGS="-Os -DGNU" 
+	cd $(PUBLIC_APPS_PATH)/ipsectools && $(MAKE)
+	$(STRIP) $(PUBLIC_APPS_PATH)/ipsectools/src/racoon/.libs/racoon
+	$(STRIP) $(PUBLIC_APPS_PATH)/ipsectools/src/setkey/.libs/setkey
+	$(STRIP) $(PUBLIC_APPS_PATH)/ipsectools/src/racoon/.libs/libracoon.so.0.0.0
+	$(STRIP) $(PUBLIC_APPS_PATH)/ipsectools/src/libipsec/.libs/libipsec.so.0.0.1
+endif
+
+.PHONY: chat
+chat:
+ifeq ($(INCLUDE_USB_3G_DONGLE), y)
+	@echo building chat...
+	cd $(PUBLIC_APPS_PATH)/ppp-2.4.5/chat && $(MAKE)
+	$(STRIP) $(PUBLIC_APPS_PATH)/ppp-2.4.5/chat/chat
+else
+	@echo no chat
+endif
+
+.PHONY: libusb
+libusb:
+ifeq ($(INCLUDE_USB_3G_DONGLE), y)
+	echo "Building usb library"
+	cd $(PUBLIC_APPS_PATH)/libusb-1.0.8 && test -e Makefile || ./configure --build=i686-linux --host=$(HOST) --prefix=$(PUBLIC_APPS_PATH)/libusb-1.0.8/install
+	cd $(PUBLIC_APPS_PATH)/libusb-1.0.8 && $(MAKE) install
+else
+	@echo no libusb
+endif
+
+.PHONY: libcompat
+libcompat:
+ifeq ($(INCLUDE_USB_3G_DONGLE), y)
+	echo "Building usb compat"
+	cd $(PUBLIC_APPS_PATH)/libusb-compat-0.1.3 && test -e Makefile || ./configure --build=i686-linux --host=$(HOST) --prefix=$(PUBLIC_APPS_PATH)/libusb-compat-0.1.3/install LIBUSB_1_0_CFLAGS=-I$(PUBLIC_APPS_PATH)/libusb-1.0.8/install/include/libusb-1.0 LIBUSB_1_0_LIBS=-L$(PUBLIC_APPS_PATH)/libusb-1.0.8/install/lib\ -lusb-1.0
+	cd $(PUBLIC_APPS_PATH)/libusb-compat-0.1.3 && $(MAKE) install
+else
+	@echo no libcompat
+endif
+
+.PHONY: usb_modeswitch
+usb_modeswitch:
+ifeq ($(INCLUDE_USB_3G_DONGLE), y)
+	echo "Building usb_modeswitch"
+	cd $(PUBLIC_APPS_PATH)/usb-modeswitch-1.2.3 && $(MAKE)
+	$(STRIP) $(PUBLIC_APPS_PATH)/usb-modeswitch-1.2.3/usb_modeswitch
+else
+	@echo no usb_modeswitch
+endif
+
+.PHONY: xl2tpd
+xl2tpd:
+ifeq ($(INCLUDE_L2TP), y)
+	cd $(PUBLIC_APPS_PATH)/xl2tpd-1.1.12 && $(MAKE)
+endif
+
+.PHONY: bigpond
+bigpond:
+ifeq ($(INCLUDE_BPA), y)
+	cd $(PUBLIC_APPS_PATH)/bpalogin-2.0.2 && $(MAKE)
+endif
+
+.PHONY: ipping
+ipping:
+ifeq ($(INCLUDE_IPPING_DIAG), y)
+	cd $(PUBLIC_APPS_PATH)/ipping && $(MAKE)
+endif
+
+.PHONY: traceroute
+traceroute:
+ifeq ($(INCLUDE_TRACEROUTE_DIAG), y)
+	cd $(PUBLIC_APPS_PATH)/traceroute-2.0.3 && $(MAKE)
+endif
+
+.PHONY: dropbear
+dropbear:
+ifeq ($(INCLUDE_PORTABLE_APP), y)
+	cd $(PUBLIC_APPS_PATH)/dropbear && $(MAKE) MULTI=1 SCPPROGRESS=1
+else
+	@echo no dropbear
+endif
+
+####################################################
+#
+#Build filesystem, prepare basic fs first
+#
+####################################################
+.PHONY: fs_build
+fs_build: fs_clean fs_create fs_lib fs_dev fs_bin fs_modules fs_sysfiles fs_rootfs
+
+fs_clean:
+	rm -rf $(MODEL_FS_PATH)/../rootfs.$(MODEL)
+	rm -rf $(MODEL_FS_PATH)
+	rm -rf $(MODEL_FS_PATH)/../reduced_data_model_plaintext_$(MODEL).xml
+	
+fakeroot_clean:    
+	if [ -e $(FAKEROOT_PATH)/Makefile ];  then make -C $(FAKEROOT_PATH) distclean; fi
+	rm -f $(FAKEROOT_PATH)/fakeroot
+	rm -f $(FAKEROOT_PATH)/.configured
+	
+.PHONY: fs_create
+fs_create: 
+	cp -pR $(TOP_PATH)/targets/fs.dir $(MODEL_FS_PATH)
+	find  $(MODEL_FS_PATH) -name ".svn" | xargs rm -rf
+ifneq ($(INCLUDE_CWMP_SSL_VERIFY_PEER), y)
+	@rm -fr $(MODEL_FS_PATH)/etc/cert
+endif
+
+	#for rcS, yuanshang, 20111026
+	rm -fr $(MODEL_FS_PATH)/etc/init.d/*
+	cp $(TOP_PATH)/targets/fs.dir/etc/init.d/rcS_$(MODEL) $(MODEL_FS_PATH)/etc/init.d/rcS
+
+.PHONY: fs_lib
+fs_lib:
+	cp -d $(SLIB_PATH)/* $(MODEL_FS_PATH)/lib/
+	-cp $(PRIVATE_LIB_BIN_PATH)/* $(MODEL_FS_PATH)/lib/
+	cp $(PUBLIC_APPS_PATH)/upnp_libs/*.so $(MODEL_FS_PATH)/lib/
+	cp $(OS_LIB_PATH)/libos.so $(MODEL_FS_PATH)/lib
+
+ifeq ($(INCLUDE_SSL), y)
+	cp -p $(PUBLIC_APPS_PATH)/openssl/libcrypto.so.0.9.7 $(MODEL_FS_PATH)/lib/
+	cd $(MODEL_FS_PATH)/lib/ && ln -sf libcrypto.so.0.9.7 libcrypto.so
+	cp -p $(PUBLIC_APPS_PATH)/openssl/libssl.so.0.9.7 $(MODEL_FS_PATH)/lib/
+	cd $(MODEL_FS_PATH)/lib/ && ln -sf libssl.so.0.9.7 libssl.so
+endif
+	
+ifneq ($(strip $(INCLUDE_USB_VOICEMAIL)),)
+	cp $(APP_PJSIP_DIR)/usbvm/lib/libusbvmcommon.so $(MODEL_FS_PATH)/lib/
+endif
+
+	#for the libs of samba and ntfs-3g, zjj, 20111129
+ifeq ($(INCLUDE_USB_STORAGE), y)
+	cp -p $(PUBLIC_APPS_PATH)/ntfs-3g_ntfsprogs-2012.1.15/libntfs-3g/.libs/libntfs-3g.so.83.0.0 $(MODEL_FS_PATH)/lib/
+	cd $(MODEL_FS_PATH)/lib/ && ln -sf libntfs-3g.so.83.0.0 libntfs-3g.so.83
+	cd $(MODEL_FS_PATH)/lib/ && ln -sf libntfs-3g.so.83.0.0 libntfs-3g.so
+ifeq ($(INCLUDE_USB_SAMBA_SERVER), y)
+	cp -p $(PUBLIC_APPS_PATH)/samba-3.0.14a/source/bin/libbigballofmud.so $(MODEL_FS_PATH)/lib/
+	cd $(MODEL_FS_PATH)/lib/ && ln -sf libbigballofmud.so libbigballofmud.so.0
+endif
+endif
+	#end by zjj
+ 
+ifeq ($(INCLUDE_USB_3G_DONGLE),y)
+	cp --no-dereference -p $(PUBLIC_APPS_PATH)/libusb-1.0.8/install/lib/libusb-1.0.so* $(MODEL_FS_PATH)/lib/
+	cp --no-dereference -p $(PUBLIC_APPS_PATH)/libusb-compat-0.1.3/install/lib/libusb-0.1.so* $(MODEL_FS_PATH)/lib/
+	cp --no-dereference -p $(PUBLIC_APPS_PATH)/libusb-compat-0.1.3/install/lib/libusb.so $(MODEL_FS_PATH)/lib/
+endif #INCLUDE_USB_3G_DONGLE
+ 
+ifeq ($(INCLUDE_IPSEC), y)	
+	cp -p $(PUBLIC_APPS_PATH)/ipsectools/src/racoon/.libs/libracoon.so.0.0.0 $(MODEL_FS_PATH)/lib/
+	cd $(MODEL_FS_PATH)/lib/ && ln -sf libracoon.so.0.0.0 libracoon.so.0
+	cd $(MODEL_FS_PATH)/lib/ && ln -sf libracoon.so.0.0.0 libracoon.so
+	cp -p $(PUBLIC_APPS_PATH)/ipsectools/src/libipsec/.libs/libipsec.so.0.0.1 $(MODEL_FS_PATH)/lib/
+	cd $(MODEL_FS_PATH)/lib/ && ln -sf libipsec.so.0.0.1 libipsec.so.0
+	cd $(MODEL_FS_PATH)/lib/ && ln -sf libipsec.so.0.0.1 libipsec.so
+endif
+ 
+.PHONY: fs_dev
+fs_dev:
+#	$(TOOLS_PATH)/makedevlinks $(MODEL_FS_PATH)/	
+
+
+.PHONY:fs_bin
+fs_bin:
+	-cp $(PRIVATE_APPS_BIN_PATH)/* $(MODEL_FS_PATH)/usr/bin
+	
+	cd $(PUBLIC_APPS_PATH)/busybox-1.19.2 && $(MAKE) install CONFIG_PREFIX=$(MODEL_FS_PATH)
+	cp -p $(PUBLIC_APPS_PATH)/iproute2-2.6.24-rc7/tc/tc $(MODEL_FS_PATH)/usr/bin
+	
+	cp -p $(PUBLIC_APPS_PATH)/iptables-1.4.17/iptables/xtables-multi $(MODEL_FS_PATH)/usr/bin
+	cd $(MODEL_FS_PATH)/usr/bin && ln -s xtables-multi iptables
+	
+ifeq ($(INCLUDE_IPV6), y)
+	cd $(MODEL_FS_PATH)/usr/bin && ln -s xtables-multi ip6tables
+endif
+
+ifeq ($(INCLUDE_ADSLWAN), y)
+	cp -p $(PUBLIC_APPS_PATH)/br2684ctl/br2684ctl $(MODEL_FS_PATH)/usr/bin
+endif
+	cp -p $(PUBLIC_APPS_PATH)/ppp-2.4.5/pppd/pppd $(MODEL_FS_PATH)/usr/sbin
+	cp -p $(PUBLIC_APPS_PATH)/ebtables-v2.0.10-4/ebtables $(MODEL_FS_PATH)/usr/bin
+	cp -p $(PUBLIC_APPS_PATH)/IGD/upnpd $(MODEL_FS_PATH)/usr/bin
+ifeq ($(INCLUDE_ADSLWAN), y)
+	cp -p $(PUBLIC_APPS_PATH)/linux-atm/arpd/atmarp $(MODEL_FS_PATH)/usr/sbin
+	cp -p $(PUBLIC_APPS_PATH)/linux-atm/arpd/atmarpd $(MODEL_FS_PATH)/usr/sbin
+endif
+	
+ifeq ($(INCLUDE_PORTABLE_APP), y)		
+	cp -p $(PUBLIC_APPS_PATH)/dropbear/dropbearmulti $(MODEL_FS_PATH)/usr/bin
+	cd $(MODEL_FS_PATH)/usr/bin && ln -s dropbearmulti dropbear
+	cd $(MODEL_FS_PATH)/usr/bin && ln -s dropbearmulti dropbearkey
+	cd $(MODEL_FS_PATH)/usr/bin && ln -s dropbearmulti scp
+endif
+	
+ifeq ($(INCLUDE_L2TP), y)
+	cp -p $(PUBLIC_APPS_PATH)/xl2tpd-1.1.12/xl2tpd $(MODEL_FS_PATH)/usr/sbin
+endif
+
+ifeq ($(INCLUDE_BPA), y)
+	cp -p $(PUBLIC_APPS_PATH)/bpalogin-2.0.2/bpalogin $(MODEL_FS_PATH)/usr/sbin
+endif
+
+ifeq ($(INCLUDE_USB_OVER_IP_TPLINK), y)
+	cp -p $(PUBLIC_APPS_PATH)/usbip-0.1.7/usbipd $(MODEL_FS_PATH)/usr/bin
+endif
+
+ifeq ($(INCLUDE_USB_FTP_SERVER), y)
+	cp -p $(PUBLIC_APPS_PATH)/vsftpd-2.3.2/vsftpd $(MODEL_FS_PATH)/usr/bin
+	cp -p $(PUBLIC_APPS_PATH)/vsftpd-2.3.2/vsftpd.conf $(MODEL_FS_PATH)/etc
+	cp -p $(PUBLIC_APPS_PATH)/vsftpd-2.3.2/passwd $(MODEL_FS_PATH)/etc/vsftpd_passwd
+endif
+	
+ifeq ($(INCLUDE_RIP), y)
+	cp -p $(PUBLIC_APPS_PATH)/zebra-0.95a/ripd/ripd $(MODEL_FS_PATH)/usr/sbin
+	cp -p $(PUBLIC_APPS_PATH)/zebra-0.95a/zebra/zebra $(MODEL_FS_PATH)/usr/sbin
+endif
+
+ifneq ($(strip $(INCLUDE_VOIP)),)
+	cp $(APP_VOIP_DIR)/bin/$(MODEL)/* $(MODEL_FS_PATH)/usr/bin
+	cp $(APP_PJSIP_DIR)/pjsip-apps/bin/pjsua $(MODEL_FS_PATH)/usr/bin
+endif	
+
+ifeq ($(INCLUDE_IPV6), y)
+	cp -p $(PUBLIC_APPS_PATH)/radvd-1.5/radvd $(MODEL_FS_PATH)/usr/sbin
+endif
+
+ifeq ($(INCLUDE_IPV6), y)
+	cp -p $(PUBLIC_APPS_PATH)/wide-dhcpv6-20080615/dhcp6s $(MODEL_FS_PATH)/usr/sbin
+	cp -p $(PUBLIC_APPS_PATH)/wide-dhcpv6-20080615/dhcp6c $(MODEL_FS_PATH)/usr/sbin
+endif	
+	
+ifeq ($(INCLUDE_IPV6), y)
+	cp -p $(PUBLIC_APPS_PATH)/iproute2-2.6.39/ip/ip $(MODEL_FS_PATH)/usr/bin
+endif	
+	
+ifeq ($(INCLUDE_USB_STORAGE),y)
+	#for the bins of hotplug, zjj, 20111129
+	cp $(PRIVATE_APPS_PATH)/usbp/usbp $(MODEL_FS_PATH)/sbin
+	cp $(PRIVATE_APPS_PATH)/hotplug/hotplug $(MODEL_FS_PATH)/sbin
+	#end by zjj
+	#for the bins of samba and ntfs-3g, zjj, 20111129
+	cp -p $(PUBLIC_APPS_PATH)/ntfs-3g_ntfsprogs-2012.1.15/src/.libs/ntfs-3g $(MODEL_FS_PATH)/usr/bin/ntfs-3g
+ifeq ($(INCLUDE_USB_SAMBA_SERVER), y)
+	cp -p $(PUBLIC_APPS_PATH)/samba-3.0.14a/source/bin/smbd $(MODEL_FS_PATH)/usr/bin
+	cp -p $(PUBLIC_APPS_PATH)/samba-3.0.14a/source/bin/smbpasswd $(MODEL_FS_PATH)/usr/bin
+	cp -p $(PUBLIC_APPS_PATH)/samba-3.0.14a/source/bin/smbcontrol $(MODEL_FS_PATH)/usr/bin
+endif #INCLUDE_USB_SAMBA_SERVER
+	#end by zjj
+
+#for dlna ,LI CHENGLONG
+ifeq ($(INCLUDE_USB_MEDIA_SERVER), y)
+	cp -p $(PUBLIC_APPS_PATH)/ushare-1.1a/src/ushare $(MODEL_FS_PATH)/usr/bin
+	cp -p $(PUBLIC_APPS_PATH)/ushare-1.1a/scripts/ushare.conf $(MODEL_FS_PATH)/etc/ushare.conf
+endif #INCLUDE_USB_MEDIA_SERVER
+#end by LI CHENGLONG
+#end by Zhu Haiming
+else
+ifeq ($(INCLUDE_USB_3G_DONGLE),y)
+	cp $(PRIVATE_APPS_PATH)/hotplug/hotplug $(MODEL_FS_PATH)/sbin
+endif #INCLUDE_USB_3G_DONGLE
+endif #INCLUDE_USB_STORAGE
+	
+ifeq ($(INCLUDE_USB_3G_DONGLE),y)
+	cp $(PRIVATE_APPS_PATH)/handle_card/modswitch_conf/support_3g_list $(MODEL_FS_PATH)/etc
+	cp $(PUBLIC_APPS_PATH)/usb-modeswitch-1.2.3/usb_modeswitch $(MODEL_FS_PATH)/usr/bin
+	cp $(PUBLIC_APPS_PATH)/ppp-2.4.5/chat/chat $(MODEL_FS_PATH)/usr/bin
+	cp -pR $(PRIVATE_APPS_PATH)/handle_card/source/handle_card $(MODEL_FS_PATH)/usr/sbin/
+	cp -pR $(PRIVATE_APPS_PATH)/handle_card/modem_scan/modem_scan $(MODEL_FS_PATH)/usr/sbin/
+	cp -pR $(PRIVATE_APPS_PATH)/handle_card/chat_script/* $(MODEL_FS_PATH)/etc/ppp/
+	cp -pR $(PRIVATE_APPS_PATH)/handle_card/modswitch_conf/mode_switch.conf.bin $(MODEL_FS_PATH)/etc/
+endif #INCLUDE_USB_3G_DONGLE
+
+#for ipping and traceroute, Zhu Haiming
+ifeq ($(INCLUDE_IPPING_DIAG), y)
+	cp -p $(PUBLIC_APPS_PATH)/ipping/ipping $(MODEL_FS_PATH)/usr/bin
+endif #INCLUDE_IPPING_DIAG
+ifeq ($(INCLUDE_TRACEROUTE_DIAG), y)
+	cp -p $(PUBLIC_APPS_PATH)/traceroute-2.0.3/traceroute/traceroute $(MODEL_FS_PATH)/usr/bin
+endif #INCLUDE_TRACEROUTE_DIAG
+	
+ifeq ($(INCLUDE_IPSEC),y)
+	cp -p $(PUBLIC_APPS_PATH)/ipsectools/src/racoon/.libs/racoon $(MODEL_FS_PATH)/usr/bin
+	cp -p $(PUBLIC_APPS_PATH)/ipsectools/src/setkey/.libs/setkey $(MODEL_FS_PATH)/usr/bin
+	#copy ipsecVpn in user cmm Makefile
+	#cp -p $(PRIVATE_APPS_PATH)/user/ipsecVpn/ipsecVpn $(MODEL_FS_PATH)/usr/sbin
+endif
+
+ifeq ($(strip $(SUPPLIER)),mtk)
+	cp $(TOP_PATH)/$(SUPPLIER)/apps/private/tcci/tcci $(MODEL_FS_PATH)/usr/bin
+	rm -f $(MODEL_FS_PATH)/usr/bin/tce
+	ln -s tcci $(MODEL_FS_PATH)/usr/bin/tce
+	rm -f $(MODEL_FS_PATH)/usr/bin/sys
+	ln -s tcci $(MODEL_FS_PATH)/usr/bin/sys
+	rm -f $(MODEL_FS_PATH)/usr/bin/wan
+	ln -s tcci $(MODEL_FS_PATH)/usr/bin/wan
+	rm -f $(MODEL_FS_PATH)/usr/bin/w
+	ln -s tcci $(MODEL_FS_PATH)/usr/bin/w
+	
+endif	#SUPPLIER-ralink
+
+ifeq ($(strip $(SUPPLIER)),mtk_ApSoC_4120)
+	cp $(TOP_PATH)/$(SUPPLIER)/apps/reg/reg $(MODEL_FS_PATH)/usr/bin
+	cp $(TOP_PATH)/$(SUPPLIER)/apps/hw_nat/hw_nat $(MODEL_FS_PATH)/usr/bin
+	cp $(TOP_PATH)/$(SUPPLIER)/apps/hw_nat/mtr $(MODEL_FS_PATH)/usr/bin
+	cp $(TOP_PATH)/$(SUPPLIER)/apps/hw_nat/acl $(MODEL_FS_PATH)/usr/bin
+	cp $(TOP_PATH)/$(SUPPLIER)/apps/hw_nat/ac $(MODEL_FS_PATH)/usr/bin
+
+ifeq ($(INCLUDE_LAN_WLAN), y) 
+	cp $(INSTALL_WIRELESS)/sbin/iwpriv $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/sbin/wlNetlinkTool $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/lib/libiw.so.29 $(MODEL_FS_PATH)/lib
+	cp $(INSTALL_WIRELESS)/sbin/ated_tp $(MODEL_FS_PATH)/usr/bin
+	#cp $(INSTALL_WIRELESS)/sbin/ated $(MODEL_FS_PATH)/usr/bin
+	#cp $(INSTALL_WIRELESS)/sbin/mpstat $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/sbin/rt2860apd $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/sbin/rtinicapd $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/sbin/wscd $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/sbin/wscd_5G $(MODEL_FS_PATH)/usr/bin
+
+	chmod +x $(MODEL_FS_PATH)/usr/bin/*
+else	#INCLUDE_LAN_WLAN
+	@echo no wifi
+endif	#INCLUDE_LAN_WLAN
+
+endif	#SUPPLIER-mtk_ApSoC_4120
+
+ifeq ($(strip $(SUPPLIER)),mtk_ApSoC_4320)
+	cp $(TOP_PATH)/$(SUPPLIER)/apps/reg/reg $(MODEL_FS_PATH)/usr/bin
+
+ifeq ($(INCLUDE_LAN_WLAN), y) 
+	cp $(INSTALL_WIRELESS)/sbin/iwpriv $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/sbin/iwconfig $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/sbin/iwlist $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/sbin/wlNetlinkTool $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/lib/libiw.so.29 $(MODEL_FS_PATH)/lib
+	cp $(INSTALL_WIRELESS)/sbin/ated_tp $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/sbin/ated $(MODEL_FS_PATH)/usr/bin
+	#cp $(INSTALL_WIRELESS)/sbin/mpstat $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/sbin/rt2860apd $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/sbin/rtinicapd $(MODEL_FS_PATH)/usr/bin
+	cp $(INSTALL_WIRELESS)/sbin/wscd $(MODEL_FS_PATH)/usr/bin
+
+#Build wscd with wifi modules
+	#cp $(TOP_PATH)/$(SUPPLIER)/filesystem/usr/bin/wscd $(MODEL_FS_PATH)/usr/bin
+	chmod +x $(MODEL_FS_PATH)/usr/bin/*
+else	#INCLUDE_LAN_WLAN
+	@echo no wifi
+endif	#INCLUDE_LAN_WLAN
+
+endif	#SUPPLIER-mtk_ApSoC_4320
+
+# xcl add, 20130315
+ifeq ($(strip $(SUPPLIER)),mtk)
+	cp $(TOP_PATH)/$(SUPPLIER)/apps/private/tcci/tcci $(MODEL_FS_PATH)/usr/bin
+	rm -f $(MODEL_FS_PATH)/usr/bin/tce
+	ln -s tcci $(MODEL_FS_PATH)/usr/bin/tce
+	rm -f $(MODEL_FS_PATH)/usr/bin/sys
+	ln -s tcci $(MODEL_FS_PATH)/usr/bin/sys
+	rm -f $(MODEL_FS_PATH)/usr/bin/wan
+	ln -s tcci $(MODEL_FS_PATH)/usr/bin/wan
+	rm -f $(MODEL_FS_PATH)/usr/bin/w
+	ln -s tcci $(MODEL_FS_PATH)/usr/bin/w
+	
+	cp $(TOP_PATH)/$(SUPPLIER)/apps/private/lib/libtcapi.so.1 $(MODEL_FS_PATH)/lib
+endif
+
+# zl added 2011-10-19 sarctl adslctrl wlan_daemon usbctl
+ifeq ($(strip $(SUPPLIER)),realtek)
+	cp $(TOP_PATH)/$(SUPPLIER)/user/sarctl/sarctl $(MODEL_FS_PATH)/usr/bin
+	cp $(TOP_PATH)/$(SUPPLIER)/user/adslctrl_by_tp/adslctrl $(MODEL_FS_PATH)/usr/bin
+	cp $(TOP_PATH)/$(SUPPLIER)/user/ethctrl_by_tp/ethctrl $(MODEL_FS_PATH)/usr/bin
+ifeq ($(INCLUDE_LAN_WLAN), y)
+	cp $(TOP_PATH)/$(SUPPLIER)/user/ated/ated $(MODEL_FS_PATH)/bin
+	cp $(TOP_PATH)/$(SUPPLIER)/user/wsc/src/wscd $(MODEL_FS_PATH)/usr/bin
+	cp $(TOP_PATH)/$(SUPPLIER)/user/auth/src/dlisten/iwcontrol $(MODEL_FS_PATH)/bin
+	cp $(TOP_PATH)/$(SUPPLIER)/user/mini_upnp/libmini_upnp.so $(MODEL_FS_PATH)/lib
+
+	for wireless_tool in $(WIRELESS_TOOLS) ; do cp $(TOP_PATH)/$(SUPPLIER)/user/wireless_tools/$$wireless_tool $(MODEL_FS_PATH)/usr/bin || exit 1 ; done 
+endif
+endif
+# end--added
+
+ifeq ($(strip $(SUPPLIER)),lantiq)
+ifeq ($(INCLUDE_LAN_WLAN), y)
+	cp $(INSTALL_WIRELESS)/lib/libiw.so.28 $(MODEL_FS_PATH)/lib/
+	cp -p $(INSTALL_WIRELESS)/sbin/* $(MODEL_FS_PATH)/sbin
+	cp -p $(INSTALL_WIRELESS)/lib/modules/*.ko $(MODEL_FS_PATH)/lib/modules
+	cp -p $(INSTALL_WIRELESS)/lib/*.so $(MODEL_FS_PATH)/lib/
+endif	#INCLUDE_LAN_WLAN
+
+ifeq ($(INCLUDE_ADSLWAN), y)
+#prepare
+	mkdir $(MODEL_FS_PATH)/firmware
+	mkdir $(MODEL_FS_PATH)/tmp
+	mkdir $(MODEL_FS_PATH)/tmp/pipe
+	echo "ramfs /tmp ramfs defaults 0 0" >> $(MODEL_FS_PATH)/etc/fstab
+	echo "none /sys sysfs defaults 0 0" >> $(MODEL_FS_PATH)/etc/fstab
+#ko
+	cp $(SLIB_PATH)/../opt/lantiq/bin/drv_dsl_cpe_api.ko $(MODEL_FS_PATH)/lib/modules
+	cp $(SLIB_PATH)/../opt/lantiq/bin/drv_ifxos.ko $(MODEL_FS_PATH)/lib/modules
+#lib
+	cp $(SLIB_PATH)/../usr/lib/libdti_agent.so.0.0.0 $(MODEL_FS_PATH)/lib
+	cd $(MODEL_FS_PATH)/lib/ && ln -sf libdti_agent.so.0.0.0 libdti_agent.so.0
+#app bin
+	cp $(SLIB_PATH)/../usr/sbin/br2684ctl $(MODEL_FS_PATH)/usr/sbin
+	cp $(SLIB_PATH)/../usr/sbin/br2684ctld $(MODEL_FS_PATH)/usr/sbin
+	cp $(SLIB_PATH)/../opt/lantiq/bin/dsl_cpe_control $(MODEL_FS_PATH)/usr/sbin
+	cp $(SLIB_PATH)/../sbin/ppacmd $(MODEL_FS_PATH)/usr/sbin
+	cp $(SLIB_PATH)/../usr/bin/switch_utility $(MODEL_FS_PATH)/usr/sbin
+#firmware
+	cp $(SLIB_PATH)/../opt/lantiq/bin/adsl.scr $(MODEL_FS_PATH)/firmware
+	cp $(SLIB_PATH)/../opt/lantiq/bin/vdsl.scr $(MODEL_FS_PATH)/firmware
+	cp $(SLIB_PATH)/../firmware/dsl_wan_setting.sh $(MODEL_FS_PATH)/firmware
+	cp $(SLIB_PATH)/../firmware/eth_wan_setting.sh $(MODEL_FS_PATH)/firmware
+	cp $(SLIB_PATH)/../opt/lantiq/bin/dsl_cpe_pipe.sh $(MODEL_FS_PATH)/firmware
+#	cp -d $(SLIB_PATH)/../firmware/*.bin $(MODEL_FS_PATH)/firmware
+ifeq ($(INCLUDE_ANNEXB), y)
+	cp -d $(SLIB_PATH)/../firmware/xcpe_533D06_535902_AnnexB.bin $(MODEL_FS_PATH)/firmware
+	cd $(MODEL_FS_PATH)/firmware/ && ln -s xcpe_533D06_535902_AnnexB.bin xcpe_hw.bin
+else
+	cp -d $(SLIB_PATH)/../firmware/dsl_vr9_firmware_xdsl-05.04.08.00.00.06_05.04.04.04.00.01.bin $(MODEL_FS_PATH)/firmware
+	cd $(MODEL_FS_PATH)/firmware/ && ln -s dsl_vr9_firmware_xdsl-05.04.08.00.00.06_05.04.04.04.00.01.bin xcpe_hw.bin
+endif
+	cp -d $(SLIB_PATH)/../firmware/xdslled.sh $(MODEL_FS_PATH)/firmware
+endif	#INCLUDE_ADSLWAN
+
+endif	#SUPPLIER-lantiq
+
+.PHONY:fs_modules
+fs_modules:
+	cp -pR $(MODULE_TG_PATH)/* $(MODEL_FS_PATH)/lib/modules
+	#test -e $(TP_MODULES_PATH)/ko && cp -pR $(TP_MODULES_PATH)/ko/*.ko $(MODEL_FS_PATH)/lib/modules
+
+ifeq ($(INCLUDE_USB_OVER_IP), y)
+ifeq ($(INCLUDE_USB_OVER_IP_TPLINK), y)
+	cp -p $(TOP_PATH)/$(SUPPLIER)/modules/public/usbip-0.1.7/usbip.ko $(MODEL_FS_PATH)/lib/modules
+	cp -p $(TOP_PATH)/$(SUPPLIER)/modules/public/usbip-0.1.7/usbip_common_mod.ko $(MODEL_FS_PATH)/lib/modules
+else   # INCLUDE_USB_OVER_IP_TPLINK
+ifeq ($(INCLUDE_VOIP), y)
+ifeq ($(strip $(CONFIG_NR_CPUS)), 2)
+	cp -p $(TP_MODULES_PATH)/ko/kcode/NetUSB2_$(MODEL).ko $(MODEL_FS_PATH)/lib/modules/NetUSB.ko
+	-cp -p $(TP_MODULES_PATH)/ko/kcode/GPL_NetUSB2_$(MODEL).ko $(MODEL_FS_PATH)/lib/modules/GPL_NetUSB.ko
+else   # CONFIG_NR_CPUS
+	cp -p $(TP_MODULES_PATH)/ko/kcode/NetUSB_$(MODEL).ko $(MODEL_FS_PATH)/lib/modules/NetUSB.ko
+	-cp -p $(TP_MODULES_PATH)/ko/kcode/GPL_NetUSB_$(MODEL).ko $(MODEL_FS_PATH)/lib/modules/GPL_NetUSB.ko
+endif  # CONFIG_NR_CPUS	
+else   # INCLUDE_VOIP
+	cp -p $(TOP_PATH)/$(SUPPLIER)/modules/private/kcode/NetUSB_$(MODEL).ko $(MODEL_FS_PATH)/lib/modules/NetUSB.ko
+	cp -p $(TOP_PATH)/$(SUPPLIER)/modules/private/kcode/GPL_NetUSB_$(MODEL).ko $(MODEL_FS_PATH)/lib/modules/GPL_NetUSB.ko
+endif  # INCLUDE_VOIP	
+endif  # INCLUDE_USB_OVER_IP_TPLINK
+endif  # INCLUDE_USB_OVER_IP
+
+ifeq ($(INCLUDE_PPTP), y)
+	cp -p $(TOP_PATH)/$(SUPPLIER)/modules/public/accel-pptp-0.8.5/pptp.ko $(MODEL_FS_PATH)/lib/modules
+endif
+
+ifeq ($(INCLUDE_L2TP), y)
+ifeq ($(KERNELVERSION), 2.6.22.15)
+	cp -p $(TOP_PATH)/$(SUPPLIER)/modules/public/pppol2tp-kmod-0.17/pppol2tp.ko $(MODEL_FS_PATH)/lib/modules
+else
+ifeq ($(KERNELVERSION), 2.6.36)
+	cp -p $(KERNELPATH)/net/l2tp/l2tp_core.ko $(MODEL_FS_PATH)/lib/modules/pppol2tp.ko
+	cp -p $(KERNELPATH)/net/l2tp/l2tp_ppp.ko $(MODEL_FS_PATH)/lib/modules/l2tp_ppp.ko
+	rm $(MODEL_FS_PATH)/lib/modules/kmdir/kernel/net/l2tp/*.ko
+else
+	cp -p $(KERNELPATH)/drivers/net/pppol2tp.ko $(MODEL_FS_PATH)/lib/modules
+endif
+endif
+endif
+
+.PHONY:fs_sysfiles
+fs_sysfiles: 
+	cp -pR $(WEBFILE_PATH)/common/* $(MODEL_FS_PATH)/web/
+ifeq ($(INCLUDE_VOIP), y)
+	find  $(MODEL_FS_PATH)/web/ -name ".svn" | xargs rm -rf
+	cp -pR $(WEBFILE_PATH)/common_voice/* $(MODEL_FS_PATH)/web/
+endif
+ifeq ($(INCLUDE_USB), y)
+	find  $(MODEL_FS_PATH)/web/ -name ".svn" | xargs rm -rf
+	cp -pR $(WEBFILE_PATH)/common_usb/* $(MODEL_FS_PATH)/web/
+endif
+ifeq ($(INCLUDE_IPV6), y)
+	find $(MODEL_FS_PATH)/web/ -name ".svn" | xargs rm -rf
+	cp -pR $(WEBFILE_PATH)/common_ipv6/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_WIFI_CERTIFIED), y)
+	cp -pR $(WEBFILE_PATH)/common_wificert/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_WEB_NEWLOGO),y)
+	@echo "#############  WEB  NEWLOGO  here  BEGIN  ###################"
+	rm -rf  $(MODEL_FS_PATH)/web/img/
+	cp -pRf $(WEBFILE_PATH)/common_newVI/* $(MODEL_FS_PATH)/web/
+	find $(MODEL_FS_PATH)/web/ -name ".svn" | xargs rm -rf
+	#$(TOP_PATH)/build/replaceRed.sh $(MODEL_FS_PATH)/web/
+	@echo "################  END  ###########################"
+endif
+
+ifeq ($(INCLUDE_MEXICO_SPEC), y)
+	cp -pR $(WEBFILE_PATH)/common_spec/MEXICO/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_KOREA_SPEC), y)
+	cp -pR $(WEBFILE_PATH)/common_spec/KOREA/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_CANADA_SPEC), y)
+	mkdir $(MODEL_FS_PATH)/bil/
+	#cp -pR $(MODEL_FS_PATH)/web/* $(MODEL_FS_PATH)/bil/
+	cp -pRf $(WEBFILE_PATH)/common_spec/CANADA/default/* $(MODEL_FS_PATH)/web/
+	cp -pRf $(WEBFILE_PATH)/common_spec/CANADA/bil/* $(MODEL_FS_PATH)/bil/
+endif
+
+ifeq ($(INCLUDE_ISRAEL_SPEC), y)
+	cp -pR $(WEBFILE_PATH)/common_spec/ISRAEL/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_MALAYSIA_SPEC), y)
+	cp -pR $(WEBFILE_PATH)/common_spec/MALAYSIA/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_RUSSIA_SPEC), y)
+	find  $(MODEL_FS_PATH)/web/ -name ".svn" | xargs rm -rf
+	cp -pR $(WEBFILE_PATH)/common_spec/RUSSIA/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_TW_SPEC), y)
+	cp -pR $(WEBFILE_PATH)/common_spec/TW/* $(MODEL_FS_PATH)/web/
+endif
+
+# delete by wuguocheng, 25Jan2016 (for UN->EU)
+#ifeq ($(INCLUDE_US_SPEC), y)
+#	cp -pR $(WEBFILE_PATH)/common_spec/US/* $(MODEL_FS_PATH)/web/
+#endif
+
+ifeq ($(INCLUDE_BR_SPEC), y)
+	cp -pRf $(WEBFILE_PATH)/common_spec/BR/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_ES_SPEC), y)
+	cp -pRf $(WEBFILE_PATH)/common_spec/ES/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_GERMANY_SPEC), y)
+	cp -pR $(WEBFILE_PATH)/common_spec/GERMANY/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_VIETNAM_FPT), y)
+	cp -pR $(WEBFILE_PATH)/common_spec/VIETNAM_FPT/* $(MODEL_FS_PATH)/web/
+endif 
+
+ifeq ($(INCLUDE_NEWZEALAND_MYREPUBLIC_SPEC), y)
+	cp -pR $(WEBFILE_PATH)/common_spec/NEWZEALAND_MYREPUBLIC/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_JAPAN_SPEC),y)
+	cp -pR $(WEBFILE_PATH)/common_spec/JAPAN/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_PL_SPEC), y)
+	find  $(MODEL_FS_PATH)/web/ -name ".svn" | xargs rm -rf
+	cp -pR $(WEBFILE_PATH)/common_spec/POLAND/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_VN_SPEC), y)
+	find  $(MODEL_FS_PATH)/web/ -name ".svn" | xargs rm -rf
+	cp -pR $(WEBFILE_PATH)/common_spec/VIETNAM/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(REGION),)
+	-cp -rf $(WEBFILE_PATH)/common_products/$(MODEL)/* $(MODEL_FS_PATH)/web/
+else
+	find  $(MODEL_FS_PATH)/web/ -name ".svn" | xargs rm -rf
+	-cp -rf $(WEBFILE_PATH)/common_products/$(MODEL)$(REGION)/* $(MODEL_FS_PATH)/web/
+endif
+
+ifeq ($(INCLUDE_WEB_NEWLOGO),y)
+	$(TOP_PATH)/build/replaceRed.sh $(MODEL_FS_PATH)/web/
+endif
+
+	cd $(MODEL_FS_PATH)/web/js && echo $(DFLAGS) | sed 's/-D//g' | sed "s/\([^ ]\{1,\}\)/-e s\/\\\\\\\<\1\\\\\\\>\/\1=1\//g" | sed -e 's/=[0-9]\\/\\/g' -e 's/=\([0-9]\{1,\}\)=1/=\1/g' | xargs sed oid_str.js > temp1.js
+	cd $(MODEL_FS_PATH)/web/js && echo $(WEBFLAGS) | sed 's/ /\n/g' | sed 's/^/var /g' | sed 's/$$/\n/g' > temp2.js && cat temp1.js >> temp2.js && mv temp2.js oid_str.js && rm temp1.js | sed -i "/^[ \t]*\/\*/,/.*\*\//d" oid_str.js
+
+	cp -pR $(CONFFILE_PATH)/common/default_config.xml $(MODEL_FS_PATH)/etc/
+
+ifeq ($(INCLUDE_WIFI_CERTIFIED), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_wificert.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_MEXICO_SPEC), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_Mexico.xml $(MODEL_FS_PATH)/etc/default_config.xml
+else ifeq ($(INCLUDE_TW_SPEC), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_TW.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_MALAYSIA_SPEC), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_Malaysia.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_RUSSIA_SPEC), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_Russia.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_CANADA_SPEC), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_Canada.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_KOREA_SPEC), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_Korea.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_ISRAEL_SPEC), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_Israel.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_US_SPEC), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_US.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_BR_SPEC), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_BR.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_GERMANY_SPEC), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_Germany.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_VIETNAM_FPT), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_Vietnam_fpt.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_UN_IPTV), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_UN_IPTV.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_NEWZEALAND_MYREPUBLIC_SPEC), y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_NewZealand_MyRepublic.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifeq ($(INCLUDE_JAPAN_SPEC),y)
+	cp -pR $(CONFFILE_PATH)/common/default_config_Japan.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+ifneq ($(REGION),)
+	-cp -pR $(BUILD_PATH)/config/$(MODEL)/$(REGION)/default_config.xml $(MODEL_FS_PATH)/etc/default_config.xml
+endif
+
+	$(TOOLS_PATH)/mkcfg -m $(CONFFILE_PATH)/common/reduced_data_model.xml -s $(CONFFILE_PATH)/oem/$(MODEL)/reduced_data_model.xml -o $(MODEL_FS_PATH)/etc/reduced_data_model.xml
+ifeq ($(INCLUDE_ISRAEL_SPEC), y)
+	$(TOOLS_PATH)/mkcfg -m $(CONFFILE_PATH)/common/reduced_data_model.xml -s $(CONFFILE_PATH)/oem/$(MODEL)/reduced_data_model_Israel.xml -o $(MODEL_FS_PATH)/etc/reduced_data_model.xml
+endif
+ifeq ($(INCLUDE_MEXICO_SPEC), y)
+	$(TOOLS_PATH)/mkcfg -m $(CONFFILE_PATH)/common/reduced_data_model.xml -s $(CONFFILE_PATH)/oem/$(MODEL)/reduced_data_model_Mexico.xml -o $(MODEL_FS_PATH)/etc/reduced_data_model.xml
+endif
+#ifeq ($(INCLUDE_US_SPEC), y)
+#	$(TOOLS_PATH)/mkcfg -m $(CONFFILE_PATH)/common/reduced_data_model.xml -s $(CONFFILE_PATH)/oem/$(MODEL)/reduced_data_model_US.xml -o $(MODEL_FS_PATH)/etc/reduced_data_model.xml
+#endif
+ifeq ($(INCLUDE_RUSSIA_SPEC), y)
+	$(TOOLS_PATH)/mkcfg -m $(CONFFILE_PATH)/common/reduced_data_model.xml -s $(CONFFILE_PATH)/oem/$(MODEL)/reduced_data_model_Russia.xml -o $(MODEL_FS_PATH)/etc/reduced_data_model.xml
+endif
+ifeq ($(INCLUDE_CANADA_SPEC), y)
+	$(TOOLS_PATH)/mkcfg -m $(CONFFILE_PATH)/common/reduced_data_model.xml -s $(CONFFILE_PATH)/oem/$(MODEL)/reduced_data_model_Canada.xml -o $(MODEL_FS_PATH)/etc/reduced_data_model.xml
+endif
+ifeq ($(INCLUDE_KOREA_SPEC), y)
+	$(TOOLS_PATH)/mkcfg -m $(CONFFILE_PATH)/common/reduced_data_model.xml -s $(CONFFILE_PATH)/oem/$(MODEL)/reduced_data_model_Korea.xml -o $(MODEL_FS_PATH)/etc/reduced_data_model.xml
+endif
+ifeq ($(INCLUDE_BR_SPEC), y)
+	$(TOOLS_PATH)/mkcfg -m $(CONFFILE_PATH)/common/reduced_data_model.xml -s $(CONFFILE_PATH)/oem/$(MODEL)/reduced_data_model_BR.xml -o $(MODEL_FS_PATH)/etc/reduced_data_model.xml
+endif
+ifeq ($(INCLUDE_GERMANY_SPEC), y)
+	$(TOOLS_PATH)/mkcfg -m $(CONFFILE_PATH)/common/reduced_data_model.xml -s $(CONFFILE_PATH)/oem/$(MODEL)/reduced_data_model_Germany.xml -o $(MODEL_FS_PATH)/etc/reduced_data_model.xml
+endif
+
+ifeq ($(INCLUDE_JAPAN_SPEC), y)
+	$(TOOLS_PATH)/mkcfg -m $(CONFFILE_PATH)/common/reduced_data_model.xml -s $(CONFFILE_PATH)/oem/$(MODEL)/reduced_data_model_Japan.xml -o $(MODEL_FS_PATH)/etc/reduced_data_model.xml
+endif
+
+ifneq ($(REGION),)
+	$(TOOLS_PATH)/mkcfg -m $(CONFFILE_PATH)/common/reduced_data_model.xml -s $(BUILD_PATH)/config/$(MODEL)/$(REGION)/reduced_data_model.xml -o $(MODEL_FS_PATH)/etc/reduced_data_model.xml
+endif
+
+	cp -pR $(MODEL_FS_PATH)/etc/reduced_data_model.xml $(MODEL_FS_PATH)/../reduced_data_model_plaintext_$(MODEL).xml
+	$(TOOLS_PATH)/enc -e -i $(MODEL_FS_PATH)/etc/default_config.xml
+	$(TOOLS_PATH)/enc -e -i $(MODEL_FS_PATH)/etc/reduced_data_model.xml
+	
+	
+	#find $(MODEL_FS_PATH)/lib -name "*.so*" -type f | xargs $(STRIP) --strip-unneeded 
+	find $(MODEL_FS_PATH)/lib -name "*.ko" | xargs $(STRIP) --strip-unneeded 
+	
+.PHONY:fs_rootfs
+fs_rootfs: fakeroot
+	find  $(MODEL_FS_PATH) -name ".svn" | xargs rm -rf
+	cd $(TOOLS_PATH) && $(FAKEROOT_PATH)/fakeroot ./buildFs $(MODEL_FS_PATH) $(ROOTFSTOOLS) $(MODEL) $(SUPPLIER)
+
+$(FAKEROOT_PATH)/.configured:
+	(tar -jkxf fakeroot.tar.bz2 2> /dev/null || true)
+	cd $(FAKEROOT_PATH); CFLAGS="-O2 -DGNU -I./" CC=gcc ./configure --prefix=/usr --disable-nls
+	touch $@
+	make -C $(FAKEROOT_PATH)
+
+.PHONY:fakeroot
+fakeroot: $(FAKEROOT_PATH)/.configured
+	@sed -e 's,^PREFIX=.*,PREFIX=$(FAKEROOT_PATH),g' -e 's,^BINDIR=.*,BINDIR=$(FAKEROOT_PATH),g' -e 's,^PATHS=.*,PATHS=$(FAKEROOT_PATH)/.libs:/lib:/usr/lib,g' $(FAKEROOT_PATH)/scripts/fakeroot > $(FAKEROOT_PATH)/fakeroot
+	@chmod u+x $(FAKEROOT_PATH)/fakeroot
+
+ifeq ($(REGION),)
+build_all: env_build boot_build kernel_build modules_build apps_build fs_build image_build
+else
+build_all: region_build env_build boot_build kernel_build modules_build apps_build fs_build image_build
+endif
+####################################################
+#
+#Build image
+#
+####################################################
+
+.PHONY:mkkernel_build
+mkkernel_build:
+	test -d $(TARGETS_PATH)/image_$(MODEL)/ || mkdir -p $(TARGETS_PATH)/image_$(MODEL)/
+	#$(TOOLS_PATH)/mkkernel -m $(KERNEL_MAX_SIZE) -t $(MTD_PART_TYPE) -p $(MODEL_FS_PATH)/../reduced_data_model_plaintext_$(MODEL).xml -b $(BOOT_TG_PATH)/boot_$(MODEL).bin -k $(KERNEL_TG_PATH)/linux.7z -f $(TARGETS_PATH)/rootfs.$(MODEL) -v $(KERNEL_TG_PATH)/vmlinux -i $(TARGETS_PATH)/image_$(MODEL)
+ifeq ($(INCLUDE_ISRAEL_SPEC), y)
+	$(TOOLS_PATH)/mkkernel_Israel -m $(KERNEL_MAX_SIZE) -t $(MTD_PART_TYPE) -p $(MODEL_FS_PATH)/../reduced_data_model_plaintext_$(MODEL).xml -b $(BOOT_TG_PATH)/boot_$(MODEL).bin -k $(KERNEL_TG_PATH)/linux.7z -f $(TARGETS_PATH)/rootfs.$(MODEL) -v $(KERNEL_TG_PATH)/vmlinux -i $(TARGETS_PATH)/image_$(MODEL)
+endif
+#ifeq ($(INCLUDE_US_SPEC), y)
+	$(TOOLS_PATH)/mkkernel_Israel -m $(KERNEL_MAX_SIZE) -t $(MTD_PART_TYPE) -p $(MODEL_FS_PATH)/../reduced_data_model_plaintext_$(MODEL).xml -b $(BOOT_TG_PATH)/boot_$(MODEL).bin -k $(KERNEL_TG_PATH)/linux.7z -f $(TARGETS_PATH)/rootfs.$(MODEL) -v $(KERNEL_TG_PATH)/vmlinux -i $(TARGETS_PATH)/image_$(MODEL)
+#endif
+.PHONY:image_build
+image_build:
+	test -d $(TARGETS_PATH)/image_$(MODEL)/ || mkdir -p $(TARGETS_PATH)/image_$(MODEL)/
+	#$(TOOLS_PATH)/imageTool/mkimage -m $(KERNEL_MAX_SIZE) -t $(MTD_PART_TYPE) -p $(MODEL_FS_PATH)/../reduced_data_model_plaintext_$(MODEL).xml -b $(BOOT_TG_PATH)/boot_$(MODEL).bin -k $(KERNEL_TG_PATH)/linux.7z -f $(TARGETS_PATH)/rootfs.$(MODEL) -v $(KERNEL_TG_PATH)/vmlinux -i $(TARGETS_PATH)/image_$(MODEL)	
+ifeq ($(INCLUDE_ISRAEL_SPEC), y)
+	$(TOOLS_PATH)/imageTool/mkimage_Israel -m $(KERNEL_MAX_SIZE) -t $(MTD_PART_TYPE) -p $(MODEL_FS_PATH)/../reduced_data_model_plaintext_$(MODEL).xml -b $(BOOT_TG_PATH)/boot_$(MODEL).bin -k $(KERNEL_TG_PATH)/linux.7z -f $(TARGETS_PATH)/rootfs.$(MODEL) -v $(KERNEL_TG_PATH)/vmlinux -i $(TARGETS_PATH)/image_$(MODEL)		
+endif	
+#ifeq ($(INCLUDE_US_SPEC), y)
+	$(TOOLS_PATH)/imageTool/mkimage_locale -m $(KERNEL_MAX_SIZE) -t $(MTD_PART_TYPE) -p $(MODEL_FS_PATH)/../reduced_data_model_plaintext_$(MODEL).xml -b $(BOOT_TG_PATH)/boot_$(MODEL).bin -k $(KERNEL_TG_PATH)/linux.7z -f $(TARGETS_PATH)/rootfs.$(MODEL) -v $(KERNEL_TG_PATH)/vmlinux -i $(TARGETS_PATH)/image_$(MODEL) -r $(REGION)	
+#endif
+####################################################
+#
+# Clear object               
+#
+###################################################
+prepare_clean:boot_clean kernel_clean modules_clean image_clean
+	@echo "Clear boot && kernel && modules Object"
+
+clean:boot_clean kernel_clean modules_clean apps_clean fs_clean fakeroot_clean
+	@echo "Clear All Object"
+
+#boot_clean:
+#ifeq ($(strip $(SUPPLIER)),mtk)
+#	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE)_demo bootbase_clean
+#else
+#	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE) bootbase_clean
+#endif
+
+kernel_clean:
+	cd $(KERNELPATH) && $(MAKE) clean
+	rm -rf $(KERNEL_TG_PATH)
+
+modules_clean:
+ifeq ($(strip $(SUPPLIER)),mtk)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE)_demo modules_clean
+endif	#SUPPLIER,mtk
+
+ifeq ($(strip $(SUPPLIER)),ralink)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE) modules_clean
+endif	#SUPPLIER,ralink
+
+# zl added 2011-10-20
+ifeq ($(strip $(SUPPLIER)),realtek)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  $(MAKE) modules_clean
+endif	#SUPPLIER,realtek
+
+ifeq ($(INCLUDE_USB_OVER_IP_TPLINK), y)
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/public/usbip-0.1.7 && $(MAKE) clean
+endif
+
+	cd $(MODULES_PATH)/ipt_STAT && $(MAKE) clean
+	cd $(MODULES_PATH)/tp_domain && $(MAKE) clean
+	
+ifneq ($(strip $(INCLUDE_VOIP)),)
+	cd $(TP_MODULES_PATH)/voip/ && $(MAKE) clean
+endif
+	rm -rf $(MODULE_TG_PATH)
+# end--added
+
+ifeq ($(INCLUDE_PPTP), y)
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/public/accel-pptp-0.8.5 && $(MAKE) clean
+endif
+
+ifeq ($(INCLUDE_L2TP), y)
+ifeq ($(KERNELVERSION), 2.6.22.15)
+	@echo "Kernel version is lower than 2.6.23, clean pppol2tp-kmod-0.17"
+	cd $(TOP_PATH)/$(SUPPLIER)/modules/public/pppol2tp-kmod-0.17 && $(MAKE) clean
+endif
+endif
+
+.PHONY:apps_clean
+apps_clean:cmm_clean voip_clean pjsip_clean mtk_tools_clean
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/busybox-1.19.2 clean
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/iproute2-2.6.24-rc7  clean
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/iptables-1.4.17 clean
+ifeq ($(INCLUDE_ADSLWAN), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/br2684ctl clean
+endif
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/ebtables-v2.0.10-4 clean
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/ppp-2.4.5/pppd clean
+ifeq ($(INCLUDE_ADSLWAN), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/linux-atm clean
+endif
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/upnp_libs clean
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/IGD clean
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/os_libs clean
+
+ifeq ($(INCLUDE_IPPING_DIAG), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/ipping clean
+endif
+ifeq ($(INCLUDE_TRACEROUTE_DIAG), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/traceroute-2.0.3 clean
+endif
+
+#add by pxlan 20140331	
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/dropbear clean
+#end by pxlan
+
+ifeq ($(INCLUDE_SSL), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/openssl clean
+endif
+	
+ifeq ($(INCLUDE_USB_OVER_IP_TPLINK), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/usbip-0.1.7 clean
+endif
+
+ifeq ($(INCLUDE_USB_FTP_SERVER), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/vsftpd-2.3.2 clean
+endif
+
+ifeq ($(INCLUDE_RIP), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/zebra-0.95a clean
+endif
+
+ifeq ($(INCLUDE_IPV6), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/radvd-1.5 clean
+endif
+
+ifeq ($(INCLUDE_IPV6), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/wide-dhcpv6-20080615 clean
+endif
+
+ifeq ($(INCLUDE_IPV6), y)
+	cd $(PUBLIC_APPS_PATH)/flex-2.5.35 && test -e Makefile || ./configure --host=mips-linux 
+	cd $(PUBLIC_APPS_PATH)/flex-2.5.35 && $(MAKE) clean
+	rm -rf $(PUBLIC_APPS_PATH)/lib
+endif
+	
+ifeq ($(INCLUDE_IPV6), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/iproute2-2.6.39 clean
+endif
+
+ifeq ($(INCLUDE_USB_STORAGE), y)
+	#for the clean of samba and ntfs-3g, zjj, 20111129
+ifeq ($(INCLUDE_USB_SAMBA_SERVER), y)
+	cd $(PUBLIC_APPS_PATH)/samba-3.0.14a/source && $(MAKE) clean
+endif	#INCLUDE_USB_SAMBA_SERVER
+	cd $(PUBLIC_APPS_PATH)/ntfs-3g_ntfsprogs-2012.1.15 && $(MAKE) clean
+	cd $(PRIVATE_APPS_PATH)/usbp && $(MAKE) clean
+	cd $(PRIVATE_APPS_PATH)/hotplug && $(MAKE) clean
+	#end by zjj
+else
+ifeq ($(INCLUDE_USB_3G_DONGLE), y)
+	cd $(PRIVATE_APPS_PATH)/hotplug && $(MAKE) clean
+endif #INCLUDE_USB_3G_DONGLE
+endif	#INCLUDE_USB_STORAGE
+
+ifeq ($(INCLUDE_USB_3G_DONGLE), y)
+	cd $(PUBLIC_APPS_PATH)/ppp-2.4.5/chat && $(MAKE) clean
+	cd $(PUBLIC_APPS_PATH)/usb-modeswitch-1.2.3 && $(MAKE) clean
+	cd $(PUBLIC_APPS_PATH)/libusb-1.0.8 && $(MAKE) clean && rm -rf install/*
+	cd $(PUBLIC_APPS_PATH)/libusb-compat-0.1.3 && $(MAKE) clean && rm -rf install/*
+	cd $(PRIVATE_APPS_PATH)/handle_card && $(MAKE) clean
+endif
+
+#for dlna , LI CHENGLONG
+ifeq ($(INCLUDE_USB_MEDIA_SERVER), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/ffmpeg-0.6 clean
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/libdlna-0.2.3 clean
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/ushare-1.1a clean
+endif
+#end by LI CHENGLONG
+
+ifeq ($(INCLUDE_BPA), y)
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/bpalogin-2.0.2 clean
+endif
+
+ifeq ($(strip $(SUPPLIER)),ralink)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE) tcci_clean
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE) ethcmd_clean
+	
+ifeq ($(INCLUDE_LAN_WLAN), y)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make PROFILE=$(CPU_TYPE) wirelesstool_clean
+else	#INCLUDE_LAN_WLAN
+	@echo no wifi
+endif	#INCLUDE_LAN_WLAN
+
+endif	#SUPPLIER
+
+# zl added 2011-10-19
+ifeq ($(strip $(SUPPLIER)),realtek)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/sarctl_clean
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/adslctrl_by_tp_clean
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/ethctrl_by_tp_clean
+ifeq ($(INCLUDE_LAN_WLAN), y)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/ated_clean
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/wsc_clean 
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/auth_clean
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/mini_upnp_clean
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/wireless_tools_clean
+endif
+endif
+# end--added
+
+ifeq ($(INCLUDE_IPSEC), y)
+	cd $(PUBLIC_APPS_PATH)/ipsectools && $(MAKE) clean
+	cd $(PUBLIC_APPS_PATH)/openssl && $(MAKE) clean
+	cd $(PUBLIC_APPS_PATH)/openssl && rm -rf ./lib
+	rm -rf $(PUBLIC_APPS_PATH)/myipsec 
+	rm -rf $(PUBLIC_APPS_PATH)/myssl
+endif
+
+ifeq ($(INCLUDE_ADSLWAN), y)
+
+
+ifeq ($(strip $(SUPPLIER)),lantiq)
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/feed_opensource_apps/linux-atm/clean
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_common/lib-dti/clean
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_dsl_cpe/ifx-dsl-cpe-api-vrx/clean
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_dsl_cpe/ifx-dsl-cpe-control-vrx/clean
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_dsl_cpe/ifx-dsl-vr9-firmware-xdsl/clean
+endif
+
+else	#INCLUDE_ADSLWAN
+	@echo no dsl_app
+endif	#INCLUDE_ADSLWAN
+
+.PHONY: mtk_tools_clean
+mtk_tools_clean:
+ifeq ($(strip $(SUPPLIER)),mtk_ApSoC_4120)
+	cd $(TOP_PATH)/$(SUPPLIER)/apps/reg && $(MAKE) clean
+	cd $(TOP_PATH)/$(SUPPLIER)/apps/hw_nat && $(MAKE) clean
+else ifeq ($(strip $(SUPPLIER)),mtk_ApSoC_4320)
+	cd $(TOP_PATH)/$(SUPPLIER)/apps/reg && $(MAKE) clean
+endif
+
+.PHONY: voip_clean
+voip_clean:
+ifneq ($(strip $(INCLUDE_VOIP)),)
+	$(MAKE) -C $(PRIVATE_APPS_PATH)/voip clean
+else	
+	@echo "skipped voip_clean"
+endif
+	
+.PHONY: pjsip_clean
+pjsip_clean:
+ifneq ($(strip $(INCLUDE_VOIP)),)
+	rm -f $(PUBLIC_APPS_PATH)/pjsip_1.10/config_cache_file
+	$(MAKE) -C $(PUBLIC_APPS_PATH)/pjsip_1.10 clean
+else	
+	@echo "skipped sip_clean"
+endif
+	
+.PHONY:cmm_clean
+cmm_clean:
+	$(MAKE) -C $(PRIVATE_APPS_PATH)/user clean
+	
+.PHONY:dsl_clean
+dsl_clean:
+ifeq ($(strip $(SUPPLIER)),lantiq)
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/feed_opensource_apps/linux-atm/clean
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_common/lib-dti/clean
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_dsl_cpe/ifx-dsl-cpe-api-vrx/clean
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_dsl_cpe/ifx-dsl-cpe-control-vrx/clean
+	#cd $(TOP_PATH)/$(SUPPLIER) && make package/feeds/ifx_dsl_cpe/ifx-dsl-vr9-firmware-xdsl/clean
+endif
+	
+.PHONY:rtl_clean
+rtl_clean:
+ifeq ($(strip $(SUPPLIER)),realtek)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/sarctl_clean
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/adslctrl_by_tp_clean
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/ethctrl_by_tp_clean
+ifeq ($(INCLUDE_LAN_WLAN), y)
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/ated_clean
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/wsc_clean 
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/auth_clean
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/mini_upnp_clean
+	cd $(TOP_PATH)/$(SUPPLIER) &&  make user/wireless_tools_clean
+endif
+endif
+
+ifeq ($(INCLUDE_L2TP), y)
+	cd $(PUBLIC_APPS_PATH)/xl2tpd-1.1.12 && $(MAKE) clean
+endif
+
+.PHONY:image_clean
+image_clean:
+	rm -rf $(TARGETS_PATH)/image_$(MODEL)/*
+
+.PHONY:region_build
+region_build:
+ifeq ($(REGION),)
+	@echo "This products haven't REGION "
+	@if test -d $(BUILD_PATH)/config/$(MODEL)/EU/; \
+	then \
+		echo "Default EU " ;\
+		cp -pR $(BUILD_PATH)/config/$(MODEL)/EU/$(MODEL).config $(BUILD_PATH)/config/; \
+	else \
+		echo "Locatization not exist"; \
+	fi; 
+else
+	@echo "this products REGION = $(REGION)"
+	@cp -pR $(BUILD_PATH)/config/$(MODEL)/$(REGION)/$(MODEL).config  $(BUILD_PATH)/config/
+endif #REGION

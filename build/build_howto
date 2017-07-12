@@ -1,0 +1,53 @@
+Version 1.0
+17 Oct 2010
+yangxv(yangxu@tp-link.com.cn)
+
+Take TD-VG3631 2.0 for example
+1. make MODEL=VG3631V2 env_build
+
+2. make MODEL=VG3631V2 boot_build
+	
+3. make MODEL=VG3631V2 kernel_build(kernel_menuconfig)
+	
+4. make MODEL=VG3631V2 modules_build
+	4.1 "modules_build" include some sub target,like kernel_modules,misc_modules,wlan_modules...
+	4.2 For most people only need to make kernel_modules 
+	
+5. make MODEL=VG3631V2 apps_build
+
+6. make MODEL=VG3631V2 fs_build
+	
+7. make MODEL=VG3631V2 image_build
+
+If you don't have mkimage,you can use mkkernel_build target to make tag_kernel bin file
+(make MODEL=VG3631V1 mkkernel_build)
+
+************  for Localization  ****************
+
+
+make MODEL=WR840NV4 REGION=KR  region_build 
+     ---- cp $(BUILD_PATH)/config/$(MODEL)/$(REGION)/$(MODEL).config  $(BUILD_PATH)/config/
+     if you don't define REGION  
+	    default 
+		  cp $(BUILD_PATH)/config/$(MODEL)/EU/$(MODEL).config  $(BUILD_PATH)/config/
+
+make MODEL=WR840NV4  REGION=KR  XXXX_build
+ 
+NOTE: 
+	 In DIR build/config
+		$(MODEL)/$(REGION)/kernel.config  equal <---> $(KERNELPATH)/$(CPU_TYPE)_$(MODEL)_XXXX_config
+		$(MODEL)/$(REGION)/default_config.xml equal <---> $(CONFFILE_PATH)/common/default_config_XXXX.xml
+		$(MODEL)/reduced_data_model.xml <---> $(CONFFILE_PATH)/common/reduced_data_model.xml
+		$(MODEL)/$(REGION)/reduced_data_model.xml <---> $(CONFFILE_PATH)/oem/$(MODEL)/reduced_data_model_XXXX.xml 
+
+     for example  MODEL=WR840NV4 REGION=KR   
+		build/config/WR840NV4/KR/kernel.config <-->  $(KERNELPATH)/mt7628_WR840NV4_Korea_config
+		build/config/WR840NV4/KR/default_config.xml <--> $(CONFFILE_PATH)/common/default_config_Korea.xml 
+		build/config/WR840NV4/reduced_data_model.xml <--> $(CONFFILE_PATH)/common/reduced_data_model.xml
+		build/config/WR840NV4/KR/reduced_data_model.xml <--> $(CONFFILE_PATH)/oem/WR840NV4/reduced_data_model_Korea.xml 
+
+
+
+
+
+

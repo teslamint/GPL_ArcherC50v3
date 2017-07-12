@@ -1,0 +1,53 @@
+menu "TPLINK Model"
+
+choice
+       prompt "TP-LINK Product MODEL"
+       default TP_MODEL_C2V1
+
+config TP_MODEL_C20iV1
+       bool "Build ArcherC20i V1"
+
+config TP_MODEL_C2V1
+       bool "Build ArcherC2 V1"
+	   
+config TP_MODEL_C20V1
+       bool "Build ArcherC20 V1"
+	   
+config TP_MODEL_C50V1
+       bool "Build ArcherC50 V1"
+
+config TP_MODEL_C50V3
+       bool "Build ArcherC50 V3"
+	   
+config TP_MODEL_WR840NV4
+       bool "Build TL-WR840N V4"
+
+config TP_MODEL_WR841NV13
+       bool "Build TL-WR841N V13"
+
+config TP_MODEL_WR845NV3
+       bool "Build TL-WR845N V3"
+
+config TP_MODEL_WR841HPV5
+       bool "Build TL-WR841HP 5.0"
+
+config TP_MODEL_C20V4
+       bool "Build ArcherC20 V4"
+
+config TP_MODEL_WA801NDV5
+       bool "Build TP_MODEL_WA801ND V5"
+
+config TP_MODEL_C50V4
+       bool "Build ArcherC50 V4"
+
+config TP_MODEL_WR802NV4
+       bool "Build TP_MODEL_WR802N V4"
+
+config TP_MODEL_C2V5
+       bool "Build ArcherC2 V5"
+	   
+endchoice
+
+
+endmenu
+

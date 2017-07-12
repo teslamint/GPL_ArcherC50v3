@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<DslCpeConfig>
+	<InternetGatewayDevice>
+		<LANDevice instance=1 >
+			<WLANConfiguration instance=1 >
+				<SSID val="TP-Link_0969" />
+				<BeaconType val=Basic />
+				<X_TP_Bandwidth val="40M" />
+				<BasicEncryptionModes val=None />
+				<BasicAuthenticationMode val=None />
+			</WLANConfiguration>
+			<WLANConfiguration instance=2 >
+				<SSID val="TP-Link_0969_5G" />
+				<BeaconType val=Basic />
+				<X_TP_Bandwidth val="80M" />
+				<BasicEncryptionModes val=None />
+				<BasicAuthenticationMode val=None />
+			</WLANConfiguration>
+			<X_TP_LANIGMPSnoopConfig>
+				<Enabled val=0 />
+			</X_TP_LANIGMPSnoopConfig>
+		</LANDevice>
+		<X_TP_ProduceInfo>
+			<Online val=1 />
+		</X_TP_ProduceInfo>
+	</InternetGatewayDevice>
+</DslCpeConfig>

@@ -1,0 +1,33 @@
+README:
+
+1. To Build both Toolchain and Firmware image: 
+   1.1 Host Ubuntu 12.04 or higher (Linux kernel 3.2.0) on x86 machine
+   1.2 Compiling tool version: gcc 4.6.3 or higher, GNU Make version 3.81
+
+2. Put the package GPL_PACKAGE_NAME.tar.gz to a directory such as /home/TP-LINK, then extract the compressed files.
+   $ cd /home/TP-LINK
+   $ tar xzvf GPL_PACKAGE_NAME.tar.gz
+
+To Build Firmware image:
+   1.1 Go to GPL_PACKAGE_NAME build folder and execute make.
+   $ cd /home/TP-LINK/GPL_PACKAGE_NAME/build
+   Do as:
+
+	1. sudo make  env_build
+
+	2. make boot_build
+	
+	3. make  kernel_build(kernel_menuconfig)
+	
+	4. make  modules_build
+		4.1 "modules_build" include some sub target,like kernel_modules,misc_modules,wlan_modules...
+		4.2 For most people only need to make kernel_modules 
+	
+	5. make apps_build
+
+	6. make fs_build
+	
+	7. make image_build
+
+   will generate the DEV_NAME_(xxx).bin, under GPL_PACKAGE_NAME/targets/image_MODEL folder. 
+   xxx refers to flash or up_boot, with specific time-stamp and version info.
